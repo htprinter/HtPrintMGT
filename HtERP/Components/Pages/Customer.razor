@@ -1,0 +1,741 @@
+﻿@page "/Customer"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using HtERP.Data
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using ClosedXML.Excel
+@inject IJSRuntime JS
+@attribute [Authorize]
+
+<PageTitle>Customer</PageTitle>
+
+<div>
+    <strong><font size="5" style="color:#016f5e">客户信息</font></strong>
+    <em>（共: <strong>@numResults() </strong>条内容）</em>
+    每页显示条数:
+    <select @bind="@pagination.ItemsPerPage">
+        <option>50</option>
+        <option>100</option>
+        <option>500</option>
+        <option>1000</option>
+        <option>2000</option>
+    </select>
+    
+</div>
+
+
+<div>
+    <input type="search" autofocus @bind="nameFilter" placeholder="客户名..." style="width:120px" />
+    <input type="search" autofocus @bind="nameFilter1" placeholder="电话..." style="width:120px" />
+
+    <button class="btn btn-primary" @onclick="查询">查询</button>
+    <button class="btn btn-primary" @onclick="清空搜索项">清空搜索项</button>
+    <button class="btn btn-primary" @onclick="DownloadExcel">下载Excel</button>
+    <button class="btn btn-primary" @onclick="显示新建">新客户</button>
+</div>
+@if (ShowNew)
+{
+    <div class="bigbox">
+        <div class="container">
+            <div class="box">
+                客户名：<input @bind="khm" type="text" style="min-width:128px;background-color:rgb(255,255,225)" />
+            </div>
+            <div class="box">
+                联系人：<input @bind="khlxr" type="text" style="min-width:128px" />
+            </div>
+           
+            <div class="box">
+                手机号：<input @bind="khsj" type="text" style="min-width:128px;background-color:rgb(255,255,225)" />
+            </div>
+
+        </div>
+        <div class="container">
+            <div class="box">
+                公司名：<input @bind="khgsm" type="text" style="min-width:158px" />
+            </div>
+            <div class="box">
+                地址：<input @bind="khdz" type="text" style="min-width:128px" />
+            </div>
+            
+            <div class="box">
+                备注：<input @bind="khbz" type="text" style="min-width:128px" />
+            </div>
+
+        </div>
+        <div class="container">
+            <h4 style="color:red">@xx</h4>
+            <div class="box">
+                <button class="btn btn-primary" @onclick="完成新建">确定</button>
+            </div>
+            <div class="box">
+                <button class="btn btn-primary" @onclick="取消新建">取消</button>
+            </div>
+        </div>
+
+    </div>
+}
+
+@if (forecasts == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div>
+        <QuickGrid Items="@items" Theme="corporate" class="table" Pagination="@pagination" @key="@GridKey">
+                      
+            <PropertyColumn Property="@(c => c.自动编号)" Sortable="true" Align="Align.Right" Title="序号" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
+            @if (Isadmin)
+            {
+                <TemplateColumn Title="客户名" SortBy="@客户ID排序" Align="Align.Center" InitialSortDirection="SortDirection.Ascending">
+                    <input id="textkh" type="text" Value="@(context.客户ID)"  @onchange="(e) => 更新用户名(e, context)" />
+                </TemplateColumn>
+            }
+            else
+            {
+                <PropertyColumn Property="@(c => c.客户ID)" Sortable="true" Align="Align.Left" Title="客户名" />
+            }
+
+            <TemplateColumn Title="联系人" SortBy="@联系人排序" Align="Align.Center" >
+                <input id="textlxr" type="text" @bind="@(context.联系人)" style="text-align: right" class="priceinput" onblur="@(() => 更新数据(context))" />
+
+            </TemplateColumn>
+
+                
+            @if (Isadmin)
+            {
+                <TemplateColumn Title="手机" SortBy="@手机排序" Align="Align.Center">
+                    <input id="textsj" type="text" Value="@(context.手机)" @onchange="(e) => 更新手机号(e, context)" />
+                </TemplateColumn>
+            }
+            else
+            {
+                <PropertyColumn Property="@(c => c.手机)" Sortable="true" Align="Align.Left" Title="手机" />
+            }
+
+            <TemplateColumn Title="公司名" SortBy="@公司名排序" Align="Align.Center" >
+                <input id="textgsm" type="text" @bind="@(context.公司名称)" onblur="@(() => 更新数据(context))" />
+            </TemplateColumn>
+            <TemplateColumn Title="地址" SortBy="@地址排序" Align="Align.Center" >
+                <input id="textdz" type="text" @bind="@(context.地址)" onblur="@(() => 更新数据(context))" />
+            </TemplateColumn>
+            <TemplateColumn Title="客户类型" SortBy="@类型排序" Align="Align.Center" >
+                <input id="textlx" type="text" @bind="@(context.客户类型)" onblur="@(() => 客户类型更新(context))" list="khlxoptions" />
+            </TemplateColumn>
+            <TemplateColumn Title="备注" Align="Align.Center" >
+                <input id="textbz" type="text" @bind="@(context.备注)" onblur="@(() => 更新数据(context))" />
+            </TemplateColumn>
+            <TemplateColumn Title="编辑" Align="Align.Center">
+                <button class="btn trbtn" @onclick="@(e => ShowEdit(e, context))"><img src="/image/svg-black/pan_edit.svg" width="18" class="bi" aria-hidden="true" alt="编辑" /></button>
+            </TemplateColumn>
+            @if (Isadmin)
+            {
+                <TemplateColumn Title="" Align="Align.Center">
+                    <button class="btn trbtn" @onclick="@(() => ShowDeleteEvent(context))"><img src="/image/red-trash2.svg" width="18" class="bi" aria-hidden="true" alt="删" /></button>
+                </TemplateColumn>
+            }
+        </QuickGrid>
+        <Paginator State="@pagination" />
+    </div>
+
+    @if (Isadmin)
+    {
+        <p> <button class="btn btn-primary" @onclick="新插一行">新插一行随机生成</button></p>
+    }
+ 
+}
+@if (ShowDialog)
+{
+    <div class="custom-dialog" @onclick:stopPropagation>
+        <div class="dialog-content">
+            <h3> 是否确定把密码重置为“888888”？</h3>
+            <p><button class="dialog-button" @onclick="重置密码">确定重置</button> <button class="dialog-button" @onclick="HideDialogEvent">取消</button></p>
+        </div>
+    </div>
+}
+
+@if (ShowDelete)
+{
+    <div class="custom-dialog" @onclick:stopPropagation>
+        <div class="dialog-content">
+            <h3> 是否确定要删除？</h3>
+            <h4> 客户名：@pp?.客户ID</h4>
+            <p><button class="dialog-button" @onclick="Deleteit">确定删除</button> <button class="dialog-button" @onclick="HideDeleteEvent">取消</button></p>
+        </div>
+    </div>
+}
+
+
+<!-- 客户编辑对话框 -->
+@if (ShowEditDialog)
+{
+
+    <div class="edit-dialog" style="@EditDialogStyle">
+        <div class="editdialog-header" data-drag-parent=".edit-dialog">
+            <div class="editdialog-title">修改客户信息：</div>
+            <button class="editclose-btn" @onclick="关闭编辑对话框">×</button>
+        </div>
+
+        <div class="card-body edit-form">
+
+            <div class="form-section">
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>编号</label>
+                        <div class="form-value">@dataItem?.自动编号</div>
+                    </div>
+                    <div class="form-group">
+                        <label>客户名</label>
+                        <input class="form-control" @bind="客户名" type="text" />
+                    </div>
+                    <div class="form-group">
+                        <label>联系人</label>
+                        <input class="form-control" @bind="联系人" type="text" />
+                    </div>
+                    <div class="form-group">
+                        <label>手机号</label>
+                        <input class="form-control" @bind="手机" type="text" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>客户类型</label>
+                        <input class="form-control" @bind="客户类型" type="text" list="khlxoptions" />
+                    </div>
+                    <div class="form-group">
+                        <label>公司名称</label>
+                        <input class="form-control" @bind="公司名称" type="text" />
+                    </div>
+                    <div class="form-group">
+                        <label>地址</label>
+                        <input class="form-control" @bind="地址" type="text" />
+                    </div>
+                    <div class="form-group">
+                        <label>备注</label>
+                        <input class="form-control" @bind="备注" type="text" />
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="form-section">
+   
+                <div class="form-grid discount-grid">
+                    <div class="form-group">
+                        <label>设计折扣率</label>
+                        <input class="form-control" @bind="纯设计折扣率" type="text" />
+                    </div>
+                    <div class="form-group">
+                        <label>菲林折扣率</label>
+                        <input class="form-control" @bind="菲林折扣率" type="text" />
+                    </div>
+                    <div class="form-group">
+                        <label>CTP折扣率</label>
+                        <input class="form-control" @bind="CTP折扣率" type="text" />
+                    </div>
+                    <div class="form-group">
+                        <label>数码折扣率</label>
+                        <input class="form-control" @bind="数码折扣率" type="text" />
+                    </div>
+                    <div class="form-group">
+                        <label>后加工折扣率</label>
+                        <input class="form-control" @bind="后加工折扣率" type="text" />
+                    </div>
+                    <div class="form-group">
+                        <label>其他折扣率</label>
+                        <input class="form-control" @bind="其他折扣率" type="text" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-secondary" @onclick="关闭编辑对话框">取消编辑</button>
+                <button class="btn btn-warning" @onclick="() => ShowDialogEvent(dataItem!)">重置密码</button>
+                <button class="btn btn-primary" @onclick="() => 确定编辑()">保存更改</button>
+            </div>
+        </div>
+        
+    </div>
+}
+
+<datalist id="khlxoptions">
+    <option value="现金"></option>
+    <option value="VIP"></option>
+    <option value="VIP签约"></option>
+    <option value="月"></option>
+    <option value="季"></option>
+    <option value="年"></option>
+    <option value="催款"></option>
+</datalist>
+
+
+@code {
+    PaginationState pagination = new PaginationState { ItemsPerPage = 50 };
+
+    [CascadingParameter]
+
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    AuthState? AuthState;
+    private 客户表[]? forecasts;
+    IQueryable<客户表>? items;
+    string nameFilter = string.Empty;
+    string nameFilter1 = string.Empty;
+    string nameFilter2 = string.Empty;
+
+    GridSort<客户表> rankSort = GridSort<客户表>
+        .ByDescending(x => x.自动编号);
+
+    GridSort<客户表> 客户ID排序 = GridSort<客户表>.ByDescending(x => x.客户ID);
+    GridSort<客户表> 联系人排序 = GridSort<客户表>.ByDescending(x => x.联系人);
+    GridSort<客户表> 手机排序 = GridSort<客户表>.ByDescending(x => x.手机);
+    GridSort<客户表> 公司名排序 = GridSort<客户表>.ByDescending(x => x.公司名称);
+    GridSort<客户表> 地址排序 = GridSort<客户表>.ByDescending(x => x.地址);
+    GridSort<客户表> 类型排序 = GridSort<客户表>.ByDescending(x => x.客户类型);
+
+    private int numResults()
+    {
+        int Count = items?.Count() ?? 0;
+        return Count;
+    }
+
+    private bool Isadmin { get; set; } = false; //判断是否为管理员
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = authenticationState?.Result as AuthState;
+
+        //管理员可用
+        Isadmin = AuthState?.IsAdmin == true;
+
+        forecasts = HongtengDbCon.Db.Queryable<客户表>().Where(it => it.IsDelete == false).ToArray();
+        items = forecasts.AsQueryable();
+        await InvokeAsync(StateHasChanged);
+
+    }
+
+
+    private 客户表? pp;
+
+    //弹出窗口修改密码
+    private bool ShowDialog { get; set; }
+    private void HideDialogEvent()
+    {
+        ShowDialog = false;
+    }
+    private void ShowDialogEvent(客户表 p)
+    {
+        pp = p;
+        ShowDialog = true;
+    }
+    private void 重置密码()
+    {
+        if (pp == null)
+        {
+            JS.InvokeVoidAsync("alert", "未选择客户，无法重置密码。");
+            return;
+        }
+        pp.password = "21218cca77804d2ba1922c33e0151105";
+
+        HongtengDbCon.Db.Updateable(pp).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+
+        ShowDialog = false;
+    }
+
+
+    //弹出窗口-软删除一条
+    private bool ShowDelete { get; set; }
+    private void HideDeleteEvent()
+    {
+        ShowDelete = false;
+    }
+    private void ShowDeleteEvent(客户表 p)
+    {
+        pp = p;
+        ShowDelete = true;
+    }
+    private void Deleteit()
+    {
+        if (pp == null)
+        {
+            JS.InvokeVoidAsync("alert", "未选择客户，无法删除。");
+            return;
+        }
+        pp.IsDelete = true;
+
+        HongtengDbCon.Db.Updateable(pp).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+
+        items = forecasts?.AsQueryable().Where(it => it.IsDelete == false);
+        ShowDelete = false;
+    }
+
+    //-----------------------------更新客户信息-----------------------------------
+    // 使用 @key 强制重新渲染 QuickGrid
+    private Guid GridKey { get; set; } = Guid.NewGuid();
+    private void 更新用户名(ChangeEventArgs e, 客户表 p)
+    {
+        if (p == null)
+        {
+            JS.InvokeVoidAsync("alert", "未选择客户，无法更新。");
+            return;
+        }
+        if (string.IsNullOrEmpty(e.Value?.ToString()))
+        {
+            JS.InvokeVoidAsync("alert", "客户名不能为空。");
+            GridKey = Guid.NewGuid(); // 修改 Key 强制重新渲染
+            return;
+        }
+        var new客户名 = e.Value?.ToString();
+        if (HongtengDbCon.Db.Queryable<客户表>().Any(it => it.客户ID == new客户名 && it.自动编号 != p.自动编号))
+        {
+            JS.InvokeVoidAsync("alert", "客户名已经存在，请检查。");
+            GridKey = Guid.NewGuid(); // 修改 Key 强制重新渲染
+            return;
+        }
+        p.客户ID = new客户名;
+        HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+
+    }
+    private void 更新手机号(ChangeEventArgs e, 客户表 p)
+    {
+        if (p == null)
+        {
+            JS.InvokeVoidAsync("alert", "未选择客户，无法更新。");
+            return;
+        }
+        
+        if (string.IsNullOrEmpty(e.Value?.ToString()))
+        {
+            JS.InvokeVoidAsync("alert", "手机号不能为空。");
+            GridKey = Guid.NewGuid(); // 修改 Key 强制重新渲染
+            return;
+        }
+        var new手机 = e.Value?.ToString();
+        if (HongtengDbCon.Db.Queryable<客户表>().Any(it => it.手机 == new手机 && it.自动编号 != p.自动编号))
+        {
+            JS.InvokeVoidAsync("alert", "手机号已经存在，一个手机只能对应一个客户。");
+            GridKey = Guid.NewGuid(); // 修改 Key 强制重新渲染
+            return;
+        }
+        p.手机 = new手机;
+        HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+
+    }
+    private void 客户类型更新(客户表 p)
+    {
+        if (p == null)
+        {
+            JS.InvokeVoidAsync("alert", "未选择客户，无法更新。");
+            return;
+        }
+        if (!string.IsNullOrEmpty(p.客户类型) && p.客户类型.ToLower().Contains("vip"))
+        {
+            p.VIP客户 = true;
+        }
+        else
+        {
+            p.VIP客户 = false;
+        }
+        HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+    }
+
+    private void 更新数据(客户表 p)
+    {
+        if (p == null)
+        {
+            JS.InvokeVoidAsync("alert", "未选择客户，无法更新。");
+            return;
+        }
+        if (string.IsNullOrEmpty(p.客户ID) || string.IsNullOrEmpty(p.手机))
+        {
+            JS.InvokeVoidAsync("alert", "客户名、手机不能为空。");
+            return;
+        }
+
+        HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+
+    }
+
+    //------------------------------新建客户-----------------------------------
+    private bool ShowNew = false;
+    private string xx = "";  //提示信息
+
+    private string khm="";   //客户ID
+    private string khlxr=""; //联系人
+    private string khsj="";  //手机
+    private string khgsm=""; //公司名
+    private string khdz="";  //地址
+    private string khbz="";  //备注
+
+    private void 显示新建()
+    {
+        khm = ""; //客户ID
+        khlxr = ""; //联系人
+        khsj = ""; //手机
+        khgsm = ""; //公司名
+        khdz = ""; //地址
+        khbz = ""; //备注
+        ShowNew = true;
+    }
+    private void 完成新建()
+    {
+        xx = "";
+        if (khm == "" | khsj == "")
+        {
+            xx = "客户名和手机号不能为空。";
+            return;
+        }
+        if (HongtengDbCon.Db.Queryable<客户表>().Any(it => it.客户ID == khm))
+        {
+            xx = "客户名已经存在，请检查。";
+            return;
+        }
+        if (HongtengDbCon.Db.Queryable<客户表>().Any(it => it.手机 == khsj))
+        {
+            xx = "手机号已经存在，一个手机只能对应一个客户。";
+            return;
+        }
+
+        var ddd = HongtengDbCon.Db.Insertable(new 客户表() { 客户ID = khm, 联系人 = khlxr, 手机 = khsj, 公司名称 = khgsm, 地址 = khdz, 备注 = khbz, password = "21218cca77804d2ba1922c33e0151105", IsDelete = false }).ExecuteReturnEntity();
+        var dda = forecasts?.ToList() ?? new List<客户表>();
+        dda.Add(ddd);
+        forecasts = dda.ToArray();
+        items = forecasts.AsQueryable().Where(it => it.IsDelete == false);
+        pagination.SetCurrentPageIndexAsync(pagination.LastPageIndex ?? 0); //跳转到最后一页
+
+        ShowNew = false;
+    }
+    private void 取消新建()
+    {
+        ShowNew = false;
+        xx = "";
+        khm = ""; //客户ID
+        khlxr = ""; //联系人
+        khsj = ""; //手机
+        khgsm = ""; //公司名
+        khdz = ""; //地址
+        khbz = ""; //备注
+    }
+
+
+    private void 新插一行()
+    {
+
+        Random random = new Random();  //随机数
+        int randomNumber = random.Next(65, 91);
+        char aa = (char)randomNumber;
+        randomNumber = random.Next(65, 91);
+        char bb = (char)randomNumber;
+        randomNumber = random.Next(65, 91);
+        char cc = (char)randomNumber;
+        string dd = aa.ToString() + bb + cc + "客户名"; //随机字母
+        var ddd = HongtengDbCon.Db.Insertable(new 客户表() { 客户ID = dd, 手机 = random.Next().ToString(), password = "21218cca77804d2ba1922c33e0151105", IsDelete = false, VIP客户 = false, CTP折扣率 = 1, 菲林折扣率 = 1, 数码折扣率 = 1, 后加工折扣率 = 1, 纯设计折扣率 = 1, 其他折扣率 = 1 }).ExecuteReturnEntity();
+        var dda = forecasts?.ToList() ?? new List<客户表>();
+        dda.Add(ddd);
+        forecasts = dda.ToArray();
+        items = forecasts.AsQueryable().Where(it => it.IsDelete == false);
+        pagination.SetCurrentPageIndexAsync(pagination.LastPageIndex ?? 0); //跳转到最后一页
+    }
+
+    private void AllStaff()
+    {
+        forecasts = HongtengDbCon.Db.Queryable<客户表>().ToArray();
+        items = forecasts.AsQueryable().Where(it => it.IsDelete == false);
+    }
+
+    private void 查询()
+    {
+        forecasts = HongtengDbCon.Db.Queryable<客户表>()
+                .WhereIF(!string.IsNullOrEmpty(nameFilter), it => it.客户ID != null && it.客户ID.Contains(nameFilter))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter1), it => it.手机 != null && it.手机.Contains(nameFilter1)).ToArray();
+        items = forecasts.AsQueryable().Where(it => it.IsDelete == false);
+
+    }
+
+
+    private void 清空搜索项()
+    {
+        nameFilter = string.Empty;
+        nameFilter1 = string.Empty;
+        nameFilter2 = string.Empty;
+
+    }
+
+
+    private async Task DownloadExcel()
+    {
+        if (items == null)
+        {
+            // Handle the case where items is null to avoid null reference exception
+            await JS.InvokeVoidAsync("alert", "没有可用的数据导出到Excel。");
+            return;
+        }
+        using (XLWorkbook workbook = new XLWorkbook())
+        {
+            IXLWorksheet worksheet = workbook.AddWorksheet("Mysheet");
+            worksheet.Cell(1, 1).Value = "序号";
+            worksheet.Cell(1, 2).Value = "客户ID";
+            worksheet.Cell(1, 3).Value = "公司名称";
+            worksheet.Cell(1, 4).Value = "联系人";
+            worksheet.Cell(1, 5).Value = "手机";
+            worksheet.Cell(1, 6).Value = "username";
+            worksheet.Cell(1, 7).Value = "地址";
+            worksheet.Cell(1, 8).Value = "客户类型";
+            worksheet.Cell(1, 9).Value = "备注";
+            worksheet.Row(1).Style.Font.Bold = true;
+
+            int row = 2;
+            foreach (var forzz in items)
+            {
+                worksheet.Cell(row, 1).Value = forzz.自动编号.ToString();
+                worksheet.Cell(row, 2).Value = forzz.客户ID;
+                worksheet.Cell(row, 3).Value = forzz.公司名称;
+                worksheet.Cell(row, 4).Value = forzz.联系人;
+                worksheet.Cell(row, 5).Value = forzz.手机;
+                worksheet.Cell(row, 6).Value = forzz.username;
+                worksheet.Cell(row, 7).Value = forzz.地址;
+                worksheet.Cell(row, 8).Value = forzz.客户类型;
+                worksheet.Cell(row, 9).Value = forzz.备注;
+
+                row++;
+            }
+
+            // 创建内存流用于保存工作簿
+            using (var memoryStream = new MemoryStream())
+            {
+                // 将工作簿保存到内存流中
+                workbook.SaveAs(memoryStream);
+
+                // 重置内存流的位置，以确保从头开始读取
+                memoryStream.Position = 0;
+
+                // 这里可以将内存流进行进一步处理，例如发送为电子邮件附件或者作为API响应返回等
+
+                var fileName = "客户" + DateTime.Now.ToString() + ".xlsx";
+                using var streamRef = new DotNetStreamReference(stream: memoryStream);
+
+                await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+            }
+        }
+
+    }
+
+
+
+    //-----------------------------客户编辑对话框------------------------------
+    private bool ShowEditDialog { get; set; }
+    private 客户表? dataItem;
+    private string EditDialogStyle { get; set; } = "";
+    private string? 客户名;
+    private string? 联系人;
+    private string? 手机;
+    private string? 公司名称;
+    private string? 地址;
+    private string? 客户类型;
+    private string? 备注;
+    float? 纯设计折扣率;
+    float? 菲林折扣率;
+    float? CTP折扣率;
+    float? 数码折扣率;
+    float? 后加工折扣率;
+    float? 其他折扣率;
+  
+    private void ShowEdit(MouseEventArgs e, 客户表 p)
+    {
+        dataItem = p;
+        客户名 = dataItem.客户ID;
+        联系人=dataItem.联系人;
+        手机 = dataItem.手机;
+        公司名称 = dataItem.公司名称;
+        地址 = dataItem.地址;
+        客户类型 = dataItem.客户类型;
+        备注 = dataItem.备注;
+        纯设计折扣率 = dataItem.纯设计折扣率;
+        菲林折扣率 = dataItem.菲林折扣率;
+        CTP折扣率 = dataItem.CTP折扣率; 
+        数码折扣率 = dataItem.数码折扣率;
+        后加工折扣率 = dataItem.后加工折扣率;
+        其他折扣率 = dataItem.其他折扣率;
+
+        EditDialogStyle = $"left:{e.ClientX - 820}px; top:{e.ClientY - 30}px;";
+        ShowEditDialog = true;
+    }
+    private void 关闭编辑对话框()
+    {
+        ShowEditDialog = false;
+    }
+    private void 确定编辑()
+    {
+        if (dataItem == null)
+        {
+            JS.InvokeVoidAsync("alert", "没有选择要编辑的客户。");
+            return;
+        }
+        if (string.IsNullOrEmpty(客户名) || string.IsNullOrEmpty(手机))
+        {
+            JS.InvokeVoidAsync("alert", "客户名、手机不能为空。");
+            return;
+        }
+        if (HongtengDbCon.Db.Queryable<客户表>().Any(it => it.客户ID == 客户名 && it.自动编号 != dataItem.自动编号))
+        {
+            JS.InvokeVoidAsync("alert", "客户名已经存在，请检查。");
+            return;
+        }
+        if (HongtengDbCon.Db.Queryable<客户表>().Any(it => it.手机 == 手机 && it.自动编号 != dataItem.自动编号))
+        {
+            JS.InvokeVoidAsync("alert", "手机号已经存在，一个手机只能对应一个客户。");
+            return;
+        }
+        // 更新数据
+        dataItem.客户ID = 客户名;
+        dataItem.联系人 = 联系人;
+        dataItem.手机 = 手机;
+        dataItem.公司名称 = 公司名称;
+        dataItem.地址 = 地址;
+        dataItem.客户类型 = 客户类型;
+        dataItem.备注 = 备注;
+        dataItem.纯设计折扣率 = 纯设计折扣率 ?? 1;
+        dataItem.菲林折扣率 = 菲林折扣率 ?? 1;
+        dataItem.CTP折扣率 = CTP折扣率 ?? 1;
+        dataItem.数码折扣率 = 数码折扣率 ?? 1;
+        dataItem.后加工折扣率 = 后加工折扣率 ?? 1;
+        dataItem.其他折扣率 = 其他折扣率 ?? 1;
+
+        if (dataItem.纯设计折扣率 > 1) dataItem.纯设计折扣率 = 1;
+        if (dataItem.菲林折扣率 > 1) dataItem.菲林折扣率 = 1;
+        if (dataItem.CTP折扣率 > 1) dataItem.CTP折扣率 = 1;
+        if (dataItem.数码折扣率 > 1) dataItem.数码折扣率 = 1;
+        if (dataItem.后加工折扣率 > 1) dataItem.后加工折扣率 = 1;
+        if (dataItem.其他折扣率 > 1) dataItem.其他折扣率 = 1;
+
+        if (dataItem.纯设计折扣率 < 0) dataItem.纯设计折扣率 = 0;
+        if (dataItem.菲林折扣率 < 0) dataItem.菲林折扣率 = 0;
+        if (dataItem.CTP折扣率 < 0) dataItem.CTP折扣率 = 0;
+        if (dataItem.数码折扣率 < 0) dataItem.数码折扣率 = 0;
+        if (dataItem.后加工折扣率 < 0) dataItem.后加工折扣率 = 0;
+        if (dataItem.其他折扣率 < 0) dataItem.其他折扣率 = 0;
+        
+        if (!string.IsNullOrEmpty(客户类型) && 客户类型.ToLower().Contains("vip"))
+        {
+            dataItem.VIP客户 = true;
+        }
+        else
+        {
+            dataItem.VIP客户 = false;
+        }
+
+        HongtengDbCon.Db.Updateable(dataItem).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+        ShowEditDialog = false;
+    }
+
+
+
+
+
+}

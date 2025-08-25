@@ -1,0 +1,453 @@
+﻿@page "/Customsearch"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using HtERP.Data
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using ClosedXML.Excel
+@inject IJSRuntime JS
+@attribute [Authorize]
+
+<PageTitle>Custom Search</PageTitle>
+
+<div>
+    <strong><font size="5" style="color:#42016f">综合搜索</font></strong>
+    <em>共: <strong>@numResults()</strong>条，数量: <strong>@TotalQuantity() </strong>，价格: <strong>@Totalprice()</strong>元。</em>
+    每页显示条数:
+    <select @bind="@pagination.ItemsPerPage">
+        <option>15</option>
+        <option>20</option>
+        <option>50</option>
+        <option>100</option>
+        <option>200</option>
+        <option>500</option>
+        <option>1000</option>
+    </select>
+    <button @onclick="查询今天">今日数据</button>
+
+    <label><input type="checkbox" @bind="ch1" value="印刷">印刷</label>
+    <label><input type="checkbox" @bind="ch2" value="后道">后道</label>
+    <label><input type="checkbox" @bind="ch3" value=" CTP">CTP</label>
+    <label><input type="checkbox" @bind="ch4" value="菲林">菲林</label>
+    <label><input type="checkbox" @bind="ch5" value="设计">设计</label>
+    <label><input type="checkbox" @bind="ch6" value="彩喷">彩喷</label>
+
+    <input type="search" autofocus @bind="idnumber" placeholder="按ID查询..." style="width:108px" />
+    <button @onclick="ID查询">查</button>
+    <button @onclick="DownloadData">下载详细</button>
+</div>
+
+<div>
+
+    <input @bind="date1" id="tt" type="date" style="width:120px" />
+    <input @bind="date2" id="tt" type="date" style="width:120px" />
+    <input type="search" autofocus @bind="nameFilter" placeholder="客户..." style="width:120px" />
+    <input type="search" autofocus @bind="nameFilter1" placeholder="工作名..." style="width:120px" />
+    <input type="search" autofocus @bind="nameFilter2" placeholder="型号规格..." style="width:120px" />
+    <input type="search" autofocus @bind="nameFilter3" placeholder="要求说明..." style="width:120px" />
+    <input type="search" autofocus @bind="nameFilter4" placeholder="送货地点..." style="width:120px" />
+    <input type="search" autofocus @bind="nameFilter5" placeholder="制作员..." style="width:120px" />
+    <button class="btn btn-primary" @onclick="查询">查询</button>
+    <button class="btn btn-primary" @onclick="DownloadExcel">下载Excel</button>
+    <button class="btn btn-primary" @onclick="清空搜索项">清空搜索项</button>
+</div>
+
+@if (items == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="table">
+        <QuickGrid Items="@FilteredCountries" Pagination="@pagination">
+            <PropertyColumn Property="@(c => c.分类)" Sortable="true" Align="Align.Right" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
+            <PropertyColumn Property="@(c => c.ID)" Sortable="true" Align="Align.Right" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
+            <PropertyColumn Property="@(c => c.日期)" Format="yyyy/M/d" Sortable="true" Align="Align.Right" Title="日期" />
+            <PropertyColumn Property="@(c => c.客户)" Sortable="true" Align="Align.Right" Title="客户" />
+            <PropertyColumn Property="@(c => c.品名)" Sortable="true" Align="Align.Right" Title="品名" />
+            <PropertyColumn Property="@(c => c.规格)" Sortable="true" Align="Align.Center" Title="规格" />
+            <PropertyColumn Property="@(c => c.长)" Sortable="true" Align="Align.Center" />
+            <PropertyColumn Property="@(c => c.宽)" Sortable="true" Align="Align.Center" />
+            <PropertyColumn Property="@(c => c.数量)" Sortable="true" Align="Align.Right" Title="数量" />
+            <PropertyColumn Property="@(c => c.要求说明)" Sortable="true" Align="Align.Right" />
+            <PropertyColumn Property="@(c => c.送货地点)" Sortable="true" Align="Align.Right" />
+            <PropertyColumn Property="@(c => c.附加设计费)" Format="0.00" Sortable="true" Align="Align.End" Title="设计费" />
+            <PropertyColumn Property="@(c => c.主费用)" Format="0.00" Sortable="true" Align="Align.End" Title="产品费" />
+            <PropertyColumn Property="@(c => c.其他费用)" Format="0.00" Sortable="true" Align="Align.End" Title="其他费" />
+            <PropertyColumn Property="@(c => c.价格)" Format="0.00" Sortable="true" Align="Align.End" Title="应收金额" />
+            <PropertyColumn Property="@(c => c.制作员1)" Sortable="true" Align="Align.Right" Title="制作员" />
+            <PropertyColumn Property="@(c => c.备注)" Sortable="true" Align="Align.Right" />
+            <TemplateColumn Title="完成" SortBy="@rankSort" Align="Align.Center">
+                <input id="Checkbox1" type="checkbox" @bind="context.完成" style="width:18px" disabled />
+            </TemplateColumn>
+        </QuickGrid>
+        <Paginator State="@pagination" />
+    </div>
+}
+
+@code {
+    PaginationState pagination = new PaginationState { ItemsPerPage = 20 };
+
+    int? idnumber = null;
+    DateTime date1 = DateTime.Now.AddDays(-1);
+    DateTime date2 = DateTime.Now;
+
+    IQueryable<dbModel>? items;
+
+    GridSort<dbModel> rankSort = GridSort<dbModel>
+    .ByDescending(x => x.完成);
+
+    bool ch1 = true;
+    bool ch2 = true;
+    bool ch3 = true;
+    bool ch4 = true;
+    bool ch5 = true;
+    bool ch6 = true;
+
+    string itemsWhere1 = "印刷";
+    string itemsWhere2 = "后道";
+    string itemsWhere3 = "CTP";
+    string itemsWhere4 = "菲林";
+    string itemsWhere5 = "设计";
+    string itemsWhere6 = "彩喷";
+
+    string nameFilter = string.Empty;
+    string nameFilter1 = string.Empty;
+    string nameFilter2 = string.Empty;
+    string nameFilter3 = string.Empty;
+    string nameFilter4 = string.Empty;
+    string nameFilter5 = string.Empty;
+
+    public int numResults()
+    {
+        int Count = FilteredCountries.Count();
+        return Count;
+    }
+
+    public float? TotalQuantity()  //数量合计
+    {
+        float? total = FilteredCountries.Sum(item => item.数量);
+        return total;
+    }
+
+    public decimal? Totalprice()  //价格合计
+    {
+        decimal? total = FilteredCountries.Sum(item => item.价格);
+        return total;
+    }
+
+    //按分类筛选
+    IQueryable<dbModel> FilteredCountries
+    {
+        get
+        {
+            if (ch1 == true) itemsWhere1 = "印刷"; else itemsWhere1 = "";
+            if (ch2 == true) itemsWhere2 = "后道"; else itemsWhere2 = "";
+            if (ch3 == true) itemsWhere3 = "CTP"; else itemsWhere3 = "";
+            if (ch4 == true) itemsWhere4 = "菲林"; else itemsWhere4 = "";
+            if (ch5 == true) itemsWhere5 = "设计"; else itemsWhere5 = "";
+            if (ch6 == true) itemsWhere6 = "彩喷"; else itemsWhere6 = "";
+
+            var result = items?.Where(c => c.分类 == itemsWhere1 | c.分类 == itemsWhere2 | c.分类 == itemsWhere3 | c.分类 == itemsWhere4 | c.分类 == itemsWhere5 | c.分类 == itemsWhere6);
+
+            return result;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+         
+        var q1 = HongtengDbCon.Db.Queryable<工作表_数码印刷>().Where(it => it.输出日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "印刷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数,   规格 = it.纸张类型,    价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.印刷费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收印制费, 时间戳=it.时间戳});//select结构要一样
+        var q2 = HongtengDbCon.Db.Queryable<工作表_后道加工>().Where(it => it.日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "后道", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.数量, 规格 = it.输出设备, 价格 = it.应收, 要求说明 = it.要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.加工费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收加工费, 时间戳 = it.时间戳 });
+        var q3 = HongtengDbCon.Db.Queryable<工作表_CTP输出>().Where(it => it.输出日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "CTP", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.CTP板材型号, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已输出, 附加设计费 = it.设计制作费, 主费用 = it.版费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收CTP费, 时间戳 = it.时间戳 });
+        var q4 = HongtengDbCon.Db.Queryable<工作表_菲林输出>().Where(it => it.输出日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "菲林", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.输出方向, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 附加设计费 = it.设计制作费, 主费用 = it.菲林费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收菲林费, 时间戳 = it.时间戳 });
+        var q5 = HongtengDbCon.Db.Queryable<工作表_设计制作>().Where(it => it.日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "设计", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.发送至, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 附加设计费 = it.设计制作费, 主费用 = it.施工费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收施工费, 时间戳 = it.时间戳 });
+        var q6 = HongtengDbCon.Db.Queryable<工作表_彩喷写真>().Where(it => it.输出日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "彩喷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.规格, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.价格, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收打印费, 时间戳 = it.时间戳 });
+        var list = HongtengDbCon.Db.UnionAll(q1, q2, q3, q4, q5, q6).ToList();
+        items = list.ToArray().AsQueryable();
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void 查询今天()
+    {
+         
+        var q1 = HongtengDbCon.Db.Queryable<工作表_数码印刷>().Where(it => it.输出日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "印刷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.纸张类型, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.印刷费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收印制费, 时间戳 = it.时间戳 });//select结构要一样
+        var q2 = HongtengDbCon.Db.Queryable<工作表_后道加工>().Where(it => it.日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "后道", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.数量, 规格 = it.输出设备, 价格 = it.应收, 要求说明 = it.要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.加工费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收加工费, 时间戳 = it.时间戳 });
+        var q3 = HongtengDbCon.Db.Queryable<工作表_CTP输出>().Where(it => it.输出日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "CTP", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.CTP板材型号, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已输出, 附加设计费 = it.设计制作费, 主费用 = it.版费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收CTP费, 时间戳 = it.时间戳 });
+        var q4 = HongtengDbCon.Db.Queryable<工作表_菲林输出>().Where(it => it.输出日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "菲林", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.输出方向, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 附加设计费 = it.设计制作费, 主费用 = it.菲林费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收菲林费, 时间戳 = it.时间戳 });
+        var q5 = HongtengDbCon.Db.Queryable<工作表_设计制作>().Where(it => it.日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "设计", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.发送至, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 附加设计费 = it.设计制作费, 主费用 = it.施工费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收施工费, 时间戳 = it.时间戳 });
+        var q6 = HongtengDbCon.Db.Queryable<工作表_彩喷写真>().Where(it => it.输出日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "彩喷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.规格, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.价格, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收打印费, 时间戳 = it.时间戳 });
+        var list = HongtengDbCon.Db.UnionAll(q1, q2, q3, q4, q5, q6).ToList();
+
+        items = list.ToArray().AsQueryable();
+    }
+
+    private void ID查询()
+    {
+         
+        if (idnumber > 0)
+        {
+            ch1 = true;
+            ch2 = true;
+            ch3 = true;
+            ch4 = true;
+            ch5 = true;
+            ch6 = true;
+
+            var q1 = HongtengDbCon.Db.Queryable<工作表_数码印刷>().Where(it => it.编号 == idnumber).Select(it => new dbModel { 分类 = "印刷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.纸张类型, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.印刷费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收印制费, 时间戳 = it.时间戳 });//select结构要一样
+            var q2 = HongtengDbCon.Db.Queryable<工作表_后道加工>().Where(it => it.编号 == idnumber).Select(it => new dbModel { 分类 = "后道", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.数量, 规格 = it.输出设备, 价格 = it.应收, 要求说明 = it.要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.加工费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收加工费, 时间戳 = it.时间戳 });
+            var q3 = HongtengDbCon.Db.Queryable<工作表_CTP输出>().Where(it => it.编号 == idnumber).Select(it => new dbModel { 分类 = "CTP", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.CTP板材型号, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已输出, 附加设计费 = it.设计制作费, 主费用 = it.版费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收CTP费, 时间戳 = it.时间戳 });
+            var q4 = HongtengDbCon.Db.Queryable<工作表_菲林输出>().Where(it => it.编号 == idnumber).Select(it => new dbModel { 分类 = "菲林", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.输出方向, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 附加设计费 = it.设计制作费, 主费用 = it.菲林费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收菲林费, 时间戳 = it.时间戳 });
+            var q5 = HongtengDbCon.Db.Queryable<工作表_设计制作>().Where(it => it.编号 == idnumber).Select(it => new dbModel { 分类 = "设计", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.发送至, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 附加设计费 = it.设计制作费, 主费用 = it.施工费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收施工费, 时间戳 = it.时间戳 });
+            var q6 = HongtengDbCon.Db.Queryable<工作表_彩喷写真>().Where(it => it.编号 == idnumber).Select(it => new dbModel { 分类 = "彩喷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.规格, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.价格, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收打印费, 时间戳 = it.时间戳 });
+            var list = HongtengDbCon.Db.UnionAll(q1, q2, q3, q4, q5, q6).ToList();
+
+            items = list.ToArray().AsQueryable();
+        }
+    }
+
+    private void 查询()
+    {
+        DateTime d1 = date1;
+        DateTime d2 = date2;
+
+        if (date2 < date1)
+        {
+            d1 = date2;
+            d2 = date1;
+        }
+
+         
+
+        var q1 = HongtengDbCon.Db.Queryable<工作表_数码印刷>()
+                .WhereIF(true, it => it.输出日期.Value.Date >= d1.Date && it.输出日期.Value.Date <= d2.Date)
+                .WhereIF(!string.IsNullOrEmpty(nameFilter), it => it.客户.Contains(nameFilter))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter1), it => it.文件或工作名.Contains(nameFilter1))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter2), it => it.纸张类型.Contains(nameFilter2))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter3), it => it.要求及文件位置.Contains(nameFilter3))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter4), it => it.送货地点.Contains(nameFilter4))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter5), it => it.制作员1.Contains(nameFilter5))
+                .Select(it => new dbModel { 分类 = "印刷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.纸张类型, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.印刷费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收印制费, 时间戳 = it.时间戳 });
+
+        var q2 = HongtengDbCon.Db.Queryable<工作表_后道加工>()
+                .WhereIF(true, it => it.日期.Value.Date >= d1.Date && it.日期.Value.Date <= d2.Date)
+                .WhereIF(!string.IsNullOrEmpty(nameFilter), it => it.客户.Contains(nameFilter))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter1), it => it.文件或工作名.Contains(nameFilter1))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter2), it => it.输出设备.Contains(nameFilter2))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter3), it => it.要求.Contains(nameFilter3))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter4), it => it.送货地点.Contains(nameFilter4))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter5), it => it.制作员1.Contains(nameFilter5))
+                .Select(it => new dbModel { 分类 = "后道", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.数量, 规格 = it.输出设备, 价格 = it.应收, 要求说明 = it.要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.加工费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收加工费, 时间戳 = it.时间戳 });
+
+        var q3 = HongtengDbCon.Db.Queryable<工作表_CTP输出>()
+                .WhereIF(true, it => it.输出日期.Value.Date >= d1.Date && it.输出日期.Value.Date <= d2.Date)
+                .WhereIF(!string.IsNullOrEmpty(nameFilter), it => it.客户.Contains(nameFilter))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter1), it => it.文件或工作名.Contains(nameFilter1))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter2), it => it.CTP板材型号.Contains(nameFilter2))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter3), it => it.输出要求.Contains(nameFilter3))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter4), it => it.送货地点.Contains(nameFilter4))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter5), it => it.制作员1.Contains(nameFilter5))
+                .Select(it => new dbModel { 分类 = "CTP", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.CTP板材型号, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已输出, 附加设计费 = it.设计制作费, 主费用 = it.版费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收CTP费, 时间戳 = it.时间戳 });
+
+        var q4 = HongtengDbCon.Db.Queryable<工作表_菲林输出>()
+               .WhereIF(true, it => it.输出日期.Value.Date >= d1.Date && it.输出日期.Value.Date <= d2.Date)
+               .WhereIF(!string.IsNullOrEmpty(nameFilter), it => it.客户.Contains(nameFilter))
+               .WhereIF(!string.IsNullOrEmpty(nameFilter1), it => it.文件或工作名.Contains(nameFilter1))
+               .WhereIF(!string.IsNullOrEmpty(nameFilter2), it => it.输出方向.Contains(nameFilter2))
+               .WhereIF(!string.IsNullOrEmpty(nameFilter3), it => it.输出要求.Contains(nameFilter3))
+               .WhereIF(!string.IsNullOrEmpty(nameFilter4), it => it.送货地点.Contains(nameFilter4))
+               .WhereIF(!string.IsNullOrEmpty(nameFilter5), it => it.制作员1.Contains(nameFilter5))
+               .Select(it => new dbModel { 分类 = "菲林", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.输出方向, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 附加设计费 = it.设计制作费, 主费用 = it.菲林费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收菲林费, 时间戳 = it.时间戳 });
+
+        var q5 = HongtengDbCon.Db.Queryable<工作表_设计制作>()
+               .WhereIF(true, it => it.日期.Value.Date >= d1.Date && it.日期.Value.Date <= d2.Date)
+               .WhereIF(!string.IsNullOrEmpty(nameFilter), it => it.客户.Contains(nameFilter))
+               .WhereIF(!string.IsNullOrEmpty(nameFilter1), it => it.文件或工作名.Contains(nameFilter1))
+               .WhereIF(!string.IsNullOrEmpty(nameFilter2), it => it.发送至.Contains(nameFilter2))
+               .WhereIF(!string.IsNullOrEmpty(nameFilter3), it => it.输出要求.Contains(nameFilter3))
+               .WhereIF(!string.IsNullOrEmpty(nameFilter4), it => it.送货地点.Contains(nameFilter4))
+               .WhereIF(!string.IsNullOrEmpty(nameFilter5), it => it.制作员1.Contains(nameFilter5))
+               .Select(it => new dbModel { 分类 = "设计", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.发送至, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 附加设计费 = it.设计制作费, 主费用 = it.施工费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收施工费, 时间戳 = it.时间戳 });
+
+        var q6 = HongtengDbCon.Db.Queryable<工作表_彩喷写真>()
+              .WhereIF(true, it => it.输出日期.Value.Date >= d1.Date && it.输出日期.Value.Date <= d2.Date)
+              .WhereIF(!string.IsNullOrEmpty(nameFilter), it => it.客户.Contains(nameFilter))
+              .WhereIF(!string.IsNullOrEmpty(nameFilter1), it => it.文件或工作名.Contains(nameFilter1))
+              .WhereIF(!string.IsNullOrEmpty(nameFilter2), it => it.规格.Contains(nameFilter2))
+              .WhereIF(!string.IsNullOrEmpty(nameFilter3), it => it.要求及文件位置.Contains(nameFilter3))
+              .WhereIF(!string.IsNullOrEmpty(nameFilter4), it => it.送货地点.Contains(nameFilter4))
+              .WhereIF(!string.IsNullOrEmpty(nameFilter5), it => it.制作员1.Contains(nameFilter5))
+              .Select(it => new dbModel { 分类 = "彩喷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.规格, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.价格, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收打印费, 时间戳 = it.时间戳 });
+
+        var list = HongtengDbCon.Db.UnionAll(q1, q2, q3, q4, q5, q6).ToList();
+
+        items = list.ToArray().AsQueryable();
+
+
+    }
+
+    private void 清空搜索项()
+    {
+
+        nameFilter = string.Empty;
+        nameFilter1 = string.Empty;
+        nameFilter2 = string.Empty;
+        nameFilter3 = string.Empty;
+        nameFilter4 = string.Empty;
+        nameFilter5 = string.Empty;
+
+    }
+
+    public async Task DownloadData()
+    {
+        using (XLWorkbook workbook = new XLWorkbook())
+        {
+            IXLWorksheet worksheet = workbook.AddWorksheet("Mysheet");
+
+            worksheet.Cell(1, 1).Value = "分类";
+            worksheet.Cell(1, 2).Value = "ID";
+            worksheet.Cell(1, 3).Value = "日期";
+            worksheet.Cell(1, 4).Value = "客户";
+            worksheet.Cell(1, 5).Value = "工作名";
+            worksheet.Cell(1, 6).Value = "规格";
+            worksheet.Cell(1, 7).Value = "长";
+            worksheet.Cell(1, 8).Value = "宽";
+            worksheet.Cell(1, 9).Value = "数量";
+            worksheet.Cell(1, 10).Value = "要求说明";
+            worksheet.Cell(1, 11).Value = "设计费";
+            worksheet.Cell(1, 12).Value = "产品费";
+            worksheet.Cell(1, 13).Value = "其他费";
+            worksheet.Cell(1, 14).Value = "应收金额";
+            worksheet.Cell(1, 15).Value = "制作员";
+            worksheet.Cell(1, 16).Value = "送货地点";
+            worksheet.Cell(1, 17).Value = "结清";
+            worksheet.Cell(1, 18).Value = "实收";
+            worksheet.Cell(1, 19).Value = "实收设计费";
+            worksheet.Cell(1, 20).Value = "实收产品费";
+            worksheet.Cell(1, 21).Value = "备注";
+            worksheet.Cell(1, 22).Value = "完成";
+
+            worksheet.Row(1).Style.Font.Bold = true;
+
+
+            int row = 2;
+            foreach (var forzz in FilteredCountries)
+            {
+                worksheet.Cell(row, 1).Value = forzz.分类;
+                worksheet.Cell(row, 2).Value = forzz.ID.ToString();
+                worksheet.Cell(row, 3).Value = forzz.日期;
+                worksheet.Cell(row, 4).Value = forzz.客户;
+                worksheet.Cell(row, 5).Value = forzz.品名;
+                worksheet.Cell(row, 6).Value = forzz.规格;
+                worksheet.Cell(row, 7).Value = forzz.长;
+                worksheet.Cell(row, 8).Value = forzz.宽;
+                worksheet.Cell(row, 9).Value = forzz.数量;
+                worksheet.Cell(row, 10).Value = forzz.要求说明;
+                worksheet.Cell(row, 11).Value = forzz.附加设计费;
+                worksheet.Cell(row, 12).Value = forzz.主费用;
+                worksheet.Cell(row, 13).Value = forzz.其他费用;
+                worksheet.Cell(row, 14).Value = forzz.价格;
+                worksheet.Cell(row, 15).Value = forzz.制作员1;
+                worksheet.Cell(row, 16).Value = forzz.送货地点;
+                worksheet.Cell(row, 17).Value = forzz.结清.ToString();
+                worksheet.Cell(row, 18).Value = forzz.实收;
+                worksheet.Cell(row, 19).Value = forzz.实收设计费;
+                worksheet.Cell(row, 20).Value = forzz.实收CTP费;
+                worksheet.Cell(row, 21).Value = forzz.备注;
+                worksheet.Cell(row, 22).Value = forzz.完成.ToString();
+                row++;
+            }
+
+            // 创建内存流用于保存工作簿
+            using (var memoryStream = new MemoryStream())
+            {
+                // 将工作簿保存到内存流中
+                workbook.SaveAs(memoryStream);
+
+                // 重置内存流的位置，以确保从头开始读取
+                memoryStream.Position = 0;
+
+                // 这里可以将内存流进行进一步处理，例如发送为电子邮件附件或者作为API响应返回等
+                var fileName = "综合" + DateTime.Now.ToString() + ".xlsx";
+
+                using var streamRef = new DotNetStreamReference(stream: memoryStream);
+
+                await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+            }
+        }
+
+    }
+
+
+    public async Task DownloadExcel()
+    {
+        using (XLWorkbook workbook = new XLWorkbook())
+        {
+            IXLWorksheet worksheet = workbook.AddWorksheet("Mysheet");
+
+            worksheet.Cell(1, 1).Value = "分类";
+            worksheet.Cell(1, 2).Value = "ID";
+            worksheet.Cell(1, 3).Value = "日期";
+            worksheet.Cell(1, 4).Value = "客户";
+            worksheet.Cell(1, 5).Value = "工作名";
+            worksheet.Cell(1, 6).Value = "规格";
+            worksheet.Cell(1, 7).Value = "长";
+            worksheet.Cell(1, 8).Value = "宽";
+            worksheet.Cell(1, 9).Value = "数量";
+            worksheet.Cell(1, 10).Value = "要求说明";
+            worksheet.Cell(1, 11).Value = "设计费";
+            worksheet.Cell(1, 12).Value = "产品费";
+            worksheet.Cell(1, 13).Value = "其他费";
+            worksheet.Cell(1, 14).Value = "应收金额";
+            worksheet.Cell(1, 15).Value = "制作员";
+            worksheet.Cell(1, 16).Value = "备注";
+            worksheet.Cell(1, 17).Value = "完成";
+
+            worksheet.Row(1).Style.Font.Bold = true;
+
+
+            int row = 2;
+            foreach (var forzz in FilteredCountries)
+            {
+                worksheet.Cell(row, 1).Value = forzz.分类;
+                worksheet.Cell(row, 2).Value = forzz.ID.ToString();
+                worksheet.Cell(row, 3).Value = forzz.日期;
+                worksheet.Cell(row, 4).Value = forzz.客户;
+                worksheet.Cell(row, 5).Value = forzz.品名;
+                worksheet.Cell(row, 6).Value = forzz.规格;
+                worksheet.Cell(row, 7).Value = forzz.长;
+                worksheet.Cell(row, 8).Value = forzz.宽;
+                worksheet.Cell(row, 9).Value = forzz.数量;
+                worksheet.Cell(row, 10).Value = forzz.要求说明;
+                worksheet.Cell(row, 11).Value = forzz.附加设计费;
+                worksheet.Cell(row, 12).Value = forzz.主费用;
+                worksheet.Cell(row, 13).Value = forzz.其他费用;
+                worksheet.Cell(row, 14).Value = forzz.价格;
+                worksheet.Cell(row, 15).Value = forzz.制作员1;
+                worksheet.Cell(row, 16).Value = forzz.备注;
+                worksheet.Cell(row, 17).Value = forzz.完成.ToString();
+                row++;
+            }
+
+            // 创建内存流用于保存工作簿
+            using (var memoryStream = new MemoryStream())
+            {
+                // 将工作簿保存到内存流中
+                workbook.SaveAs(memoryStream);
+
+                // 重置内存流的位置，以确保从头开始读取
+                memoryStream.Position = 0;
+
+                // 这里可以将内存流进行进一步处理，例如发送为电子邮件附件或者作为API响应返回等
+                var fileName = "综合" + DateTime.Now.ToString() + ".xlsx";
+
+                using var streamRef = new DotNetStreamReference(stream: memoryStream);
+
+                await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+            }
+        }
+
+    }
+
+
+}

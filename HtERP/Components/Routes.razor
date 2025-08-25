@@ -1,0 +1,24 @@
+﻿@using HtERP.Components.Pages
+@using Microsoft.AspNetCore.Components.Authorization
+
+@*
+<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <AuthorizeView>
+            <Authorized>
+                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+                <FocusOnNavigate RouteData="routeData" Selector="h1" />
+            </Authorized>
+            <NotAuthorized>
+                <Login></Login>
+            </NotAuthorized>
+        </AuthorizeView>
+    </Found>
+</Router> *@
+
+<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>

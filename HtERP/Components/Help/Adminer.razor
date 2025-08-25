@@ -1,0 +1,82 @@
+﻿@page "/Adminer"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using HtERP.Data
+
+<PageTitle>Admin</PageTitle>
+
+<h3 style="color:rgb(255,0,0)">系统管理，请谨慎操作</h3>
+
+<p>系统开发联系信箱：mmeegg@qq.com</p>
+<div>
+    @if (yesOrNoAdmin())
+    {
+        <button class="btn btn-lg btn-primary" @onclick="NewDatabase"><img src="/image/svg-white/White_journals-fill.svg" width="24" class="bi" aria-hidden="true" />创建数据库</button>
+        <button class="btn btn-lg btn-primary" @onclick="初始化数据"><img src="/image/svg-white/White_key-fill.svg" width="24" class="bi" aria-hidden="true" />初始化数据表</button>
+        <button class="btn btn-lg btn-primary" @onclick="写入预设数据"><img src="/image/svg-white/White_receipt-fill.svg" width="24" class="bi" aria-hidden="true" />写入预设数据</button>
+    }
+    <p style="color:limegreen">@aaa</p>
+</div>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+    AuthState? AuthState;
+
+
+    private bool yesOrNoAdmin()
+    {
+        bool isAdminPro = false;
+        AuthState = authenticationState?.Result as AuthState;
+        if (AuthState == null)
+        {
+            isAdminPro = false;
+            return isAdminPro;
+        }
+        else
+        {
+            isAdminPro = AuthState.IsAdminPro ?? false;
+            return isAdminPro;
+        }
+
+    }
+
+    public string? aaa = "";
+    public void NewDatabase()
+    {
+        CreateData createData = new CreateData();
+        aaa = createData.CreateDatabase();
+    }
+    public void 初始化数据()
+    {
+        CreateData createData = new CreateData();
+        aaa = createData.InitializeData();
+    }
+
+
+    public void 写入预设数据()
+    {
+        //预设折扣方案
+        var zkfa = HongtengDbCon.Db.Queryable<充值折扣方案>().Where(it => it.优惠方案名 == "预设_1千").Any();
+        if (!zkfa)
+        {
+            HongtengDbCon.Db.Insertable(new List<充值折扣方案>(){
+                new() { 优惠方案名 = "预设_无折扣", CTP折扣率 = 1, 菲林折扣率 = 1, 数码折扣率 = 1, 后加工折扣率 = 1, 纯设计折扣率 = 1, 其他折扣率1 = 1, 其他折扣率2 = 1, 其他折扣率3 = 1, 使用有效期 = 36600, 备注 = "系统预设，请勿删除或改名，无折扣" },
+                new() { 优惠方案名 = "预设_100", CTP折扣率 = 0.95f, 菲林折扣率 = 0.95f, 数码折扣率 = 0.9f, 后加工折扣率 = 0.9f, 纯设计折扣率 = 0.98f, 其他折扣率1 = 1, 其他折扣率2 = 0.85f, 其他折扣率3 = 1, 使用有效期 = 3660, 备注 = "系统预设，请勿删除或改名，充值100以下" },
+                new() { 优惠方案名 = "预设_500", CTP折扣率 = 0.9f, 菲林折扣率 = 0.9f, 数码折扣率 = 0.85f, 后加工折扣率 = 0.88f, 纯设计折扣率 = 0.95f, 其他折扣率1 = 0.98f, 其他折扣率2 = 0.80f, 其他折扣率3 = 1, 使用有效期 = 3660, 备注 = "系统预设，请勿删除或改名，充值500以下" },
+                new() { 优惠方案名 = "预设_1千", CTP折扣率 = 0.85f, 菲林折扣率 = 0.85f, 数码折扣率 = 0.80f, 后加工折扣率 = 0.85f, 纯设计折扣率 = 0.90f, 其他折扣率1 = 0.95f, 其他折扣率2 = 0.75f, 其他折扣率3 = 1, 使用有效期 = 3660, 备注 = "系统预设，请勿删除或改名，充值1千以下" },
+                new() { 优惠方案名 = "预设_2千", CTP折扣率 = 0.8f, 菲林折扣率 = 0.8f, 数码折扣率 = 0.75f, 后加工折扣率 = 0.82f, 纯设计折扣率 = 0.88f, 其他折扣率1 = 0.90f, 其他折扣率2 = 0.70f, 其他折扣率3 = 1, 使用有效期 = 3660, 备注 = "系统预设，请勿删除或改名，充值2千以下" },
+                new() { 优惠方案名 = "预设_5千", CTP折扣率 = 0.75f, 菲林折扣率 = 0.75f, 数码折扣率 = 0.70f, 后加工折扣率 = 0.80f, 纯设计折扣率 = 0.85f, 其他折扣率1 = 0.88f, 其他折扣率2 = 0.65f, 其他折扣率3 = 1, 使用有效期 = 3660, 备注 = "系统预设，请勿删除或改名，充值5千以下" },
+                new() { 优惠方案名 = "预设_1万", CTP折扣率 = 0.7f, 菲林折扣率 = 0.7f, 数码折扣率 = 0.65f, 后加工折扣率 = 0.78f, 纯设计折扣率 = 0.80f, 其他折扣率1 = 0.85f, 其他折扣率2 = 0.60f, 其他折扣率3 = 1, 使用有效期 = 3660, 备注 = "系统预设，请勿删除或改名，充值1万以下" },
+                new() { 优惠方案名 = "预设_2万", CTP折扣率 = 0.65f, 菲林折扣率 = 0.68f, 数码折扣率 = 0.60f, 后加工折扣率 = 0.75f, 纯设计折扣率 = 0.78f, 其他折扣率1 = 0.80f, 其他折扣率2 = 0.55f, 其他折扣率3 = 1, 使用有效期 = 3660, 备注 = "系统预设，请勿删除或改名，充值2万以下" },
+                new() { 优惠方案名 = "预设_5万", CTP折扣率 = 0.60f, 菲林折扣率 = 0.65f, 数码折扣率 = 0.55f, 后加工折扣率 = 0.72f, 纯设计折扣率 = 0.75f, 其他折扣率1 = 0.78f, 其他折扣率2 = 0.50f, 其他折扣率3 = 1, 使用有效期 = 3660, 备注 = "系统预设，请勿删除或改名，充值5万以下" },
+                new() { 优惠方案名 = "预设_10万", CTP折扣率 = 0.58f, 菲林折扣率 = 0.60f, 数码折扣率 = 0.5f, 后加工折扣率 = 0.7f, 纯设计折扣率 = 0.7f, 其他折扣率1 = 0.75f, 其他折扣率2 = 0.48f, 其他折扣率3 = 1, 使用有效期 = 3660, 备注 = "系统预设，请勿删除或改名，充值10万以下" },
+            }).ExecuteCommand();
+        }
+
+    }
+
+
+
+}

@@ -1,0 +1,1192 @@
+﻿@page "/HtReceipt"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using HtERP.Data
+@using ClosedXML.Excel
+@inject IJSRuntime JS
+@attribute [Authorize]
+
+<PageTitle>HtReceipt</PageTitle> 
+<strong><font size="5" style="color:#42016f">收款查询</font></strong>
+<em>（共: <strong>@renumResults() </strong>条,合计:应收<strong>@sumYingshou()</strong>元,实收<strong>@sumShishou()</strong>元）</em>
+<button class="btn btn-primary" @onclick="收款单今天">今日数据</button>
+<input @bind="redate1" id="tt" type="date" style="width:120px" />
+<input @bind="redate2" id="tt" type="date" style="width:120px" />
+<input type="search" autofocus @bind="renameFilter" placeholder="客户..." style="width:120px" />
+<input type="search" autofocus @bind="idnumber" placeholder="按ID查询..." style="width:108px" />
+<button class="btn btn-primary" @onclick="收款单查询">查询</button>
+    每页显示条数：
+<select @bind="@repagination.ItemsPerPage">
+    <option>8</option>
+    <option>20</option>
+    <option>50</option>
+    <option>100</option>
+    <option>1000</option>
+</select>
+<button class="btn btn-primary" @onclick="下载收款单">下载</button>
+<div class="rounded-corner-box  upbox">
+
+    @if (items == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+        <div>
+            <QuickGrid Items="@reitems" Pagination="@repagination" Theme="corporate" class="table">
+
+                <PropertyColumn Property="@(c => c.收款单编号)" Sortable="true" Align="Align.Center" Title="编号" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
+                <PropertyColumn Property="@(c => c.日期)" Title="建单日期" Format="yyyy/M/d" Sortable="true" Align="Align.Left"  />
+                <PropertyColumn Property="@(c => c.客户ID)" Sortable="true" Align="Align.Left" Title="客户" />
+                <PropertyColumn Property="@(c => c.应收金额)" Format="0.00" Sortable="true" Align="Align.End" />
+                <PropertyColumn Property="@(c => c.付款类型)" Sortable="true" Align="Align.Center" />
+                <PropertyColumn Property="@(c => c.实收金额)" Format="0.00" Sortable="true" Align="Align.End" />
+                <PropertyColumn Property="@(c => c.收款部门)" Sortable="true" Align="Align.Center" />
+                <PropertyColumn Property="@(c => c.账单状态)" Sortable="true" Align="Align.Center" />
+                <PropertyColumn Property="@(c => c.打印时间)" Title="收款时间" Sortable="true" Align="Align.Center" />
+                <PropertyColumn Property="@(c => c.备注)" Sortable="true" Align="Align.Center" />
+                <PropertyColumn Property="@(c => c.操作员)" Sortable="true" Align="Align.Left" />
+                <TemplateColumn Title=" " Align="Align.Center">
+                    <button @onclick="@(() => ShowPaymentEvent(context))">收款</button>
+                    <button @onclick="@(() => 显示编辑(context))" style="background-color:greenyellow">编辑</button>
+                    <button @onclick="@(() => ShowDeleteEvent(context))" style="background-color:rgb(255,188,188)">删除</button>
+                    
+                </TemplateColumn>
+
+        </QuickGrid>
+       
+        </div>
+
+}
+</div>
+<Paginator State="@repagination" />
+@if (ShowEdit)
+{
+    <div class="bigbox">
+        <div class="container">
+            <div class="box">
+                收款单编号：@(iid)
+            </div>
+            <div class="box">
+                日期：<input @bind="idate" type="date" style="min-width:128px" />
+            </div>
+            <div class="box">
+                客户名：<input @bind="iname" type="text" style="min-width:188px" list="khoptions"  />
+            </div>
+            <div class="box">
+                收款部门：<input @bind="ibumeng" type="text" style="min-width:128px" />
+            </div>
+            
+        </div>
+        <div class="container">
+            <div class="box">
+                应收金额：<input @bind="iyingshou" type="text" style="width:128px" />
+            </div>
+            <div class="box">
+                实收金额：<input @bind="ishishou" type="text" style="width:128px;background-color:rgb(255,255,188)" />
+            </div>
+            <div class="box">
+                付款类型：<input @bind="ileixing" type="text" style="width:118px;background-color:rgb(255,255,198)" list="fkoptions" />
+
+            </div>
+            <div class="box">
+                备注：<input @bind="ibeizhu" type="text" style="min-width:158px" />
+            </div>
+        </div>
+        <div class="container">
+            <div class="box">
+                账单状态： <select @bind="izhuangtai" style="min-width:118px;background-color:rgb(255,255,208)">
+                    <option>新增</option>
+                    <option>已发给客户</option>
+                    <option>未付款</option>
+                    <option>已结清</option>
+                    <option>已打印</option>
+                    <option>作废</option>
+                </select>
+            </div>
+            <div class="box">
+                操作员：<input @bind="icaozuo" type="text" style="min-width:158px" />
+            </div>
+            <div class="box">
+                <button class="btn btn-primary" @onclick="ShowSettleEvent">结清</button>
+            </div>
+            <div class="box">
+                <button class="btn btn-primary" @onclick="完成编辑">保存</button>
+            </div>
+            <div class="box">
+                <button class="btn btn-primary" @onclick="取消编辑">取消</button>
+            </div>
+            <div class="box">
+                <button class="btn btn-primary" @onclick="@(() => 显示明细(iid))">显示明细</button>
+            </div>
+            <div class="box">
+                <button class="btn btn-primary" @onclick="DownloadExcel">导出Excel</button>
+            </div>
+        </div>
+        
+    </div>
+}
+
+ <hr />
+
+
+
+<div>
+    <strong><font size="5" style="color:#42016f">未结算查询</font></strong>
+    <em>（共: <strong>@numResults() </strong>条，合计: <strong>@Totalprice()</strong>元）</em>
+    每页显示条数:
+    <select @bind="@pagination.ItemsPerPage">
+        <option>15</option>
+        <option>20</option>
+        <option>50</option>
+        <option>100</option>
+        <option>200</option>
+        <option>500</option>
+        <option>1000</option>
+    </select>
+    <label><input type="checkbox" @bind="ch1" value="印刷">印刷</label>
+    <label><input type="checkbox" @bind="ch2" value="后道">后道</label>
+    <label><input type="checkbox" @bind="ch3" value=" CTP">CTP</label>
+    <label><input type="checkbox" @bind="ch4" value="菲林">菲林</label>
+    <label><input type="checkbox" @bind="ch5" value="设计">设计</label>
+    <input @bind="date1" id="tt" type="date" style="width:120px" />
+    <input @bind="date2" id="tt" type="date" style="width:120px" />
+    <input type="search" autofocus @bind="nameFilter" placeholder="客户..." style="width:158px"  list="khoptions" />
+
+    <button class="btn btn-primary" @onclick="全部未结查询">全部未结</button>
+    <button class="btn btn-primary" @onclick="查询">查询</button>
+
+    <button class="btn btn-primary" @onclick="生成账单">生成收款单</button>
+
+    <button class="btn btn-primary" @onclick="DownloadExcel">下载Excel</button>
+</div>
+
+<div class="rounded-corner-box">
+    <div >
+        <QuickGrid Items="@FilteredCountries" Pagination="@pagination" class="table" Theme="intimate">
+
+            <TemplateColumn Title="" SortBy="@rankSort" Align="Align.Center">
+                <ColumnOptions>
+                    <div style="width:80px">
+                        <button class="btn btn-primary" style="width:100%" @onclick="临时全选">全选</button>
+                        <button class="btn btn-primary" style="width:100%" @onclick="临时全否">全否</button>
+                        <button class="btn btn-primary" style="width:100%" @onclick="临时反选">反选</button>
+                    </div>
+                </ColumnOptions>
+                <ChildContent>
+                    <div>
+                        <input id="Checkbox1" type="checkbox" @bind=@(context.临时选定) style="width:18px" />
+                    </div>
+                </ChildContent>
+            </TemplateColumn>
+            <PropertyColumn Property="@(c => c.分类)" Sortable="true" Align="Align.Right" />
+            <PropertyColumn Property="@(c => c.ID)" Sortable="true" Align="Align.Right" />
+            <PropertyColumn Property="@(c => c.日期)" Format="yyyy/M/d" Sortable="true" Align="Align.Right" Title="日期" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
+            <PropertyColumn Property="@(c => c.客户)" Sortable="true" Align="Align.Right" Title="客户" />
+            <PropertyColumn Property="@(c => c.品名)" Sortable="true" Align="Align.Right" Title="品名" />
+            <PropertyColumn Property="@(c => c.规格)" Sortable="true" Align="Align.Center" Title="规格" />
+            <PropertyColumn Property="@(c => c.长)" Sortable="true" Align="Align.Center" />
+            <PropertyColumn Property="@(c => c.宽)" Sortable="true" Align="Align.Center" />
+            <PropertyColumn Property="@(c => c.数量)" Sortable="true" Align="Align.Right" Title="数量" />
+            <PropertyColumn Property="@(c => c.附加设计费)" Format="0.00" Sortable="true" Align="Align.End" Title="设计费" />
+            <PropertyColumn Property="@(c => c.主费用)" Format="0.00" Sortable="true" Align="Align.End" Title="产品费" />
+            <PropertyColumn Property="@(c => c.其他费用)" Format="0.00" Sortable="true" Align="Align.End" Title="其他费" />
+            <PropertyColumn Property="@(c => c.价格)" Format="0.00" Sortable="true" Align="Align.End" Title="应收金额" />
+            <PropertyColumn Property="@(c => c.要求说明)" Sortable="true" Align="Align.Right" />
+            <PropertyColumn Property="@(c => c.制作员1)" Sortable="true" Align="Align.Right" Title="制作员" />
+            <PropertyColumn Property="@(c => c.备注)" Sortable="true" Align="Align.Right" />
+            <PropertyColumn Property="@(c => c.收款单号)" Sortable="true" Align="Align.Right" />
+        </QuickGrid>
+    </div>
+    <Paginator State="@pagination" />
+
+</div>
+
+@if (ShowPayment)
+{
+    <div class="custom-dialog" @onclick:stopPropagation>
+        <div class="dialog-content">
+            <div class="container">
+                <div class="box">
+                    收款单编号：@(iid)
+                </div>
+                <div class="box">
+                    日期：<input @bind="idate" type="date" style="min-width:128px" />
+                </div>
+                <div class="box">
+                    客户名：<input @bind="iname" type="text" style="min-width:188px" list="khoptions"  />
+
+                </div>
+                
+
+            </div>
+            <div class="container">
+                <div class="box">
+                    应收金额：<input @bind="iyingshou" type="text" style="width:128px" />
+                </div>
+                <div class="box">
+                    实收金额：<input @bind="ishishou" type="text" style="width:128px;background-color:rgb(255,255,188)" />
+                </div>
+                <div class="box">
+                    付款类型：<input @bind="ileixing" type="text" style="width:118px;background-color:rgb(255,255,208)" list="fkoptions" />
+
+                </div>
+                
+            </div>
+            <div class="container">
+                <div class="box">
+                    账单状态：<input @bind="izhuangtai" type="text" style="width:128px" disabled/>
+              
+                </div>
+                <div class="box">
+                    操作员：<input @bind="icaozuo" type="text" style="width:133px" />
+                </div>
+                <div class="box">
+                    收款部门：<input @bind="ibumeng" type="text" style="width:128px" />
+                </div>
+                
+
+            </div>
+            <div class="container">
+                <div class="box">
+                    备注：<input @bind="ibeizhu" type="text" style="width:158px" />
+                </div>
+
+                @if (payinfo)
+                {
+                    <h4 style="color:red">实收金额异常，请检查！</h4>
+                    <div class="box">
+                        <button class="btn btn-primary" @onclick="RePayment">再次确定</button>
+                    </div>
+                }
+                else
+                {
+                    <div class="box">
+                        <button class="btn btn-primary" @onclick="Payment">确定结清</button>
+                    </div>
+                }
+
+                <div class="box">
+                    <button class="btn btn-primary" @onclick="HidePaymentEvent">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (ShowDelete)
+{
+    <div class="custom-dialog" @onclick:stopPropagation>
+        <div class="dialog-content">
+            <h3> 是否确定要删除：</h3>
+            <h4> @aa</h4>
+            <p><button class="dialog-button" @onclick="Deleteit">确定删除</button> <button class="dialog-button" @onclick="HideDeleteEvent">取消</button></p>
+        </div>
+    </div>
+}
+
+@if (ShowSettle)
+{
+    <div class="custom-dialog" @onclick:stopPropagation>
+        <div class="dialog-content">
+            <h3> 是否确定账单（ @iid ）结清</h3>
+            <h4>客 户 名：@iname</h4>
+            <h4>应收金额：@iyingshou</h4>
+            <h4>实收金额：<input @bind="ishishou" type="text" style="min-width:118px;background-color:rgb(255,255,208)" /></h4>
+            <h4>
+                付款类型：<input @bind="ileixing" type="text" style="min-width:118px;background-color:rgb(255,255,208)" list="fkoptions" />
+
+            </h4>
+            <h4 style="color:red">@bb</h4>
+            <p><button class="dialog-button" @onclick="确定结清">确定结清</button> <button class="dialog-button" @onclick="取消结清">取消</button></p>
+        </div>
+    </div>
+}
+
+
+<!-- 输入框下拉列表 -->
+<datalist id="khoptions">
+    <option value="现金"></option>
+    <option value="临时"></option>
+    @if (kh != null) foreach (var fore in kh)
+        {
+            <option value="@fore.客户ID"></option>
+        }
+</datalist>
+<datalist id="fkoptions">
+    <option value="现金"></option>
+    <option value="微信"></option>
+    <option value="支付宝"></option>
+    <option value="银行对公"></option>
+    <option value="承兑"></option>
+    <option value="银行对私"></option>
+    <option value="一码通"></option>
+    <!-- 更多选项 -->
+</datalist>
+
+
+@code {
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+    AuthState? AuthState;
+
+    PaginationState repagination = new PaginationState { ItemsPerPage = 8 }; //收款单分页
+    PaginationState pagination = new PaginationState { ItemsPerPage = 20 };  //明细分页
+
+    int? idnumber = null; //收款单号查询
+                          //收款单日期
+    DateTime redate1 = DateTime.Now.AddDays(-1);
+    DateTime redate2 = DateTime.Now;
+    //明细日期
+    DateTime date1 = DateTime.Now.AddDays(-1);
+    DateTime date2 = DateTime.Now;
+
+    IQueryable<dbModel>? items; //明细集合
+
+    bool ch1 = true;
+    bool ch2 = true;
+    bool ch3 = true;
+    bool ch4 = true;
+    bool ch5 = true;
+    bool ch6 = true;
+
+    string itemsWhere1 = "印刷";
+    string itemsWhere2 = "后道";
+    string itemsWhere3 = "CTP";
+    string itemsWhere4 = "菲林";
+    string itemsWhere5 = "设计";
+    string itemsWhere6 = "彩喷";
+
+    string renameFilter = string.Empty; //收款单客户名
+    string nameFilter = string.Empty; //明细客户名
+
+    private 客户表[]? kh;
+
+    public int renumResults() //收款单条目数
+    {
+        int Count = reitems.Count();
+        return Count;
+    }
+
+    public decimal? sumYingshou() //应收金额合计
+	{
+        decimal? total = reitems.Sum(item => item.应收金额);
+		return total;
+	}
+
+    public decimal? sumShishou() //实收金额合计
+    {
+        decimal? total = reitems.Sum(item => item.实收金额);
+        return total;
+    }
+
+    public int numResults() //明细条目数
+    {
+        int Count = FilteredCountries.Count();
+        return Count;
+    }
+
+    private 收款账单[]? reforecasts;
+    IQueryable<收款账单>? reitems;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = authenticationState?.Result as AuthState;
+
+         
+        var q1 = HongtengDbCon.Db.Queryable<工作表_数码印刷>().Where(it => it.结清 == false || it.结清 == null).Where(it => it.输出日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "印刷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.纸张类型, 附加设计费 = it.设计制作费, 主费用 = it.印刷费, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 收款单号 = it.收款单号, IsDelete = it.IsDelete });//select结构要一样
+        var q2 = HongtengDbCon.Db.Queryable<工作表_后道加工>().Where(it => it.结清 == false || it.结清 == null).Where(it => it.日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "后道", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.数量, 规格 = it.输出设备, 附加设计费 = it.设计制作费, 主费用 = it.加工费, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 收款单号 = it.收款单号, IsDelete=it.IsDelete });
+        var q3 = HongtengDbCon.Db.Queryable<工作表_CTP输出>().Where(it => it.结清 == false || it.结清 == null).Where(it => it.输出日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "CTP", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.CTP板材型号, 附加设计费 = it.设计制作费, 主费用 = it.版费, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已输出, 收款单号 = it.收款单号, IsDelete=it.IsDelete });
+        var q4 = HongtengDbCon.Db.Queryable<工作表_菲林输出>().Where(it => it.结清 == false || it.结清 == null).Where(it => it.输出日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "菲林", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.输出方向, 附加设计费 = it.设计制作费, 主费用 = it.菲林费, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 收款单号 = it.收款单号, IsDelete=it.IsDelete });
+        var q5 = HongtengDbCon.Db.Queryable<工作表_设计制作>().Where(it => it.结清 == false || it.结清 == null).Where(it => it.日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "设计", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.发送至, 附加设计费 = it.设计制作费, 主费用 = it.施工费, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 收款单号 = it.收款单号, IsDelete = it.IsDelete });
+        var q6 = HongtengDbCon.Db.Queryable<工作表_彩喷写真>().Where(it => it.结清 == false || it.结清 == null).Where(it => it.输出日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "彩喷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.规格, 附加设计费 = it.设计制作费, 主费用 = it.价格, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 收款单号 = it.收款单号, IsDelete = it.IsDelete });
+        var list = HongtengDbCon.Db.UnionAll(q1, q2, q3, q4, q5, q6).ToList();
+        items = list.Where(it => it.IsDelete == false).ToArray().AsQueryable();
+
+        reforecasts = HongtengDbCon.Db.Queryable<收款账单>().Where(it => it.日期.HasValue && it.日期.Value.Date == DateTime.Now.Date && it.有效 == true).ToArray();
+        reitems = reforecasts.AsQueryable();
+        await InvokeAsync(StateHasChanged);
+    }
+
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            kh = HongtengDbCon.Db.Queryable<客户表>().Where(it => it.IsDelete == false).ToArray();
+
+            await InvokeAsync(StateHasChanged);
+        }
+
+    }
+
+    private void 收款单今天()
+    {
+        reforecasts = HongtengDbCon.Db.Queryable<收款账单>().Where(it => it.日期.Value.Date == DateTime.Now.Date && it.有效 == true).ToArray();
+        reitems = reforecasts.AsQueryable();
+
+    }
+
+    private void 收款单查询()
+    {
+        if (idnumber>0)
+        {
+            reforecasts = HongtengDbCon.Db.Queryable<收款账单>().Where(it => it.收款单编号 == idnumber).ToArray();
+        }
+        else
+        {
+            DateTime d1 = redate1;
+            DateTime d2 = redate2;
+
+            if (redate2 < redate1)
+            {
+                d1 = redate2;
+                d2 = redate1;
+            }
+
+            reforecasts = HongtengDbCon.Db.Queryable<收款账单>().Where(it => it.有效 == true)
+                 .WhereIF(true, it => it.日期.Value.Date >= d1.Date && it.日期.Value.Date <= d2.Date)
+                 .WhereIF(!string.IsNullOrEmpty(renameFilter), it => it.客户ID.Contains(renameFilter)).ToArray();
+
+        }
+        reitems = reforecasts.AsQueryable();
+
+    }
+
+    private void 显示明细(int dataid)
+    {
+         
+        var q1 = HongtengDbCon.Db.Queryable<工作表_数码印刷>().Where(it => it.收款单号 == dataid).Select(it => new dbModel { 分类 = "印刷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.纸张类型, 附加设计费 = it.设计制作费, 主费用 = it.印刷费, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 收款单号 = it.收款单号, IsDelete = it.IsDelete });//select结构要一样
+        var q2 = HongtengDbCon.Db.Queryable<工作表_后道加工>().Where(it => it.收款单号 == dataid).Select(it => new dbModel { 分类 = "后道", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.数量, 规格 = it.输出设备, 附加设计费 = it.设计制作费, 主费用 = it.加工费, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 收款单号 = it.收款单号, IsDelete=it.IsDelete });
+        var q3 = HongtengDbCon.Db.Queryable<工作表_CTP输出>().Where(it => it.收款单号 == dataid).Select(it => new dbModel { 分类 = "CTP", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.CTP板材型号, 附加设计费=it.设计制作费, 主费用=it.版费, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已输出, 收款单号 = it.收款单号, IsDelete=it.IsDelete });
+        var q4 = HongtengDbCon.Db.Queryable<工作表_菲林输出>().Where(it => it.收款单号 == dataid).Select(it => new dbModel { 分类 = "菲林", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.输出方向, 附加设计费 = it.设计制作费, 主费用 = it.菲林费, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 收款单号 = it.收款单号, IsDelete=it.IsDelete });
+        var q5 = HongtengDbCon.Db.Queryable<工作表_设计制作>().Where(it => it.收款单号 == dataid).Select(it => new dbModel { 分类 = "设计", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.发送至, 附加设计费 = it.设计制作费, 主费用 = it.施工费, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 收款单号 = it.收款单号, IsDelete = it.IsDelete });
+        var q6 = HongtengDbCon.Db.Queryable<工作表_彩喷写真>().Where(it => it.收款单号 == dataid).Select(it => new dbModel { 分类 = "彩喷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.规格, 附加设计费 = it.设计制作费, 主费用 = it.价格, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 收款单号 = it.收款单号, IsDelete = it.IsDelete });//select结构要一样
+        var list = HongtengDbCon.Db.UnionAll(q1, q2, q3, q4, q5, q6).ToList();
+        items = list.Where(it => it.IsDelete == false).ToArray().AsQueryable();
+
+    }
+
+    private void 新账单(收款账单 data)
+    {
+        // 处理从子组件接收到的数据;
+        var dda = reforecasts.ToList();
+        dda.Add(data);
+        reforecasts = dda.ToArray();
+        reitems = reforecasts.Where(it => it.有效 == true).AsQueryable();
+        repagination.SetCurrentPageIndexAsync(repagination.LastPageIndex ?? 0); //跳转到最后一页
+
+        显示编辑(data);
+    }
+
+
+    //弹出窗口-软删除一条
+    string? aa;
+    private 收款账单? pp;
+    private bool ShowDelete { get; set; }
+    private void HideDeleteEvent()
+    {
+        ShowDelete = false;
+    }
+    private void ShowDeleteEvent(收款账单 p)
+    {
+        pp = p;
+        aa = pp.收款单编号 + "，" + pp.客户ID + "， 金额：" + pp.应收金额 + "元";
+        ShowDelete = true;
+    }
+    private void Deleteit()
+    {
+        pp.有效 = false;
+        HongtengDbCon.Db.Updateable(pp).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+        reitems = reforecasts.AsQueryable().Where(it => it.有效 == null || it.有效 == true);
+        ShowDelete = false;
+
+        //修改该收款单下的条目，结清为否
+        var dt = new Dictionary<string, object>();
+        dt.Add("收款单号", pp.收款单编号);
+        dt.Add("结清", false);
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_数码印刷").WhereColumns("收款单号").ExecuteCommand();
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_CTP输出").WhereColumns("收款单号").ExecuteCommand();
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_菲林输出").WhereColumns("收款单号").ExecuteCommand();
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_设计制作").WhereColumns("收款单号").ExecuteCommand();
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_后道加工").WhereColumns("收款单号").ExecuteCommand();
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_彩喷写真").WhereColumns("收款单号").ExecuteCommand();
+        ShowEdit = false;
+    }
+
+    //弹出收款窗口
+    bool payinfo = false;
+    private bool ShowPayment { get; set; }
+    private void HidePaymentEvent()
+    {
+        ShowPayment = false;
+    }
+    private void ShowPaymentEvent(收款账单 p)
+    {
+        iid = p.收款单编号;
+        idate = p.日期;
+        iname = p.客户ID;
+        iyingshou = p.应收金额;
+        ileixing = p.付款类型;
+        ishishou = p.实收金额;
+        ibumeng = p.收款部门;
+        izhuangtai = p.账单状态;
+        ibeizhu = p.备注;
+        icaozuo = p.操作员;
+        pp = p;
+        payinfo = false;
+        ShowPayment = true;
+
+    }
+    private void Payment()
+    {
+        payinfo = false;
+        if (ishishou==null)
+        {
+            ishishou = 0;
+        }
+        if (iyingshou>0)
+        {
+            if (ishishou < (iyingshou/2))
+            {
+                payinfo = true;
+                return;
+            }
+
+        }
+        izhuangtai = "已结清";
+        pp.日期 = idate;           //日期
+        pp.客户ID = iname;         //客户ID
+        pp.应收金额 = iyingshou;   //应收金额
+        pp.付款类型 = ileixing;    //付款类型
+        pp.实收金额 = ishishou;    //实收金额
+        pp.收款部门 = ibumeng;     //收款部门
+        pp.账单状态 = izhuangtai;  //账单状态
+        pp.备注 = ibeizhu;         //备注
+        pp.操作员 = icaozuo;       //操作员
+        pp.打印时间 = DateTime.Now;
+        HongtengDbCon.Db.Updateable(pp).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+
+        //修改该收款单下的条目，结清为true
+        var dt = new Dictionary<string, object>();
+        dt.Add("收款单号", iid);
+        dt.Add("结清", true);
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_数码印刷").WhereColumns("收款单号").ExecuteCommand();
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_CTP输出").WhereColumns("收款单号").ExecuteCommand();
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_菲林输出").WhereColumns("收款单号").ExecuteCommand();
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_设计制作").WhereColumns("收款单号").ExecuteCommand();
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_后道加工").WhereColumns("收款单号").ExecuteCommand();
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_彩喷写真").WhereColumns("收款单号").ExecuteCommand();
+        ShowPayment = false;
+
+        //调用计算各项实收
+        decimal b = 0;
+        if (ishishou > 0 & iyingshou > 0)
+        {
+            b = (ishishou ?? 0) / (iyingshou ?? 0);
+        }
+        if (iyingshou == 0 | iyingshou == null)
+        {
+            b = 1;
+        }
+        计算各项实收(iid, b);
+    }
+    private void RePayment()
+    {
+        izhuangtai = "已结清";
+        pp.日期 = idate;           //日期
+        pp.客户ID = iname;         //客户ID
+        pp.应收金额 = iyingshou;   //应收金额
+        pp.付款类型 = ileixing;    //付款类型
+        pp.实收金额 = ishishou;    //实收金额
+        pp.收款部门 = ibumeng;     //收款部门
+        pp.账单状态 = izhuangtai;  //账单状态
+        pp.备注 = ibeizhu;         //备注
+        pp.操作员 = icaozuo;       //操作员
+        pp.打印时间 = DateTime.Now;
+        HongtengDbCon.Db.Updateable(pp).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+
+        //修改该收款单下的条目，结清为true
+        var dt = new Dictionary<string, object>();
+        dt.Add("收款单号", iid);
+        dt.Add("结清", true);
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_数码印刷").WhereColumns("收款单号").ExecuteCommand();
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_CTP输出").WhereColumns("收款单号").ExecuteCommand();
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_菲林输出").WhereColumns("收款单号").ExecuteCommand();
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_设计制作").WhereColumns("收款单号").ExecuteCommand();
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_后道加工").WhereColumns("收款单号").ExecuteCommand();
+        HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_彩喷写真").WhereColumns("收款单号").ExecuteCommand();
+        ShowPayment = false;
+        payinfo = false;
+
+        //调用计算各项实收
+        decimal b = 0;
+        if (ishishou > 0 & iyingshou > 0)
+        {
+            b = (ishishou ?? 0) / (iyingshou ?? 0);
+        }
+        if (iyingshou == 0 | iyingshou == null)
+        {
+            b = 1;
+        }
+        计算各项实收(iid, b);
+    }
+
+
+    //编辑收款单
+    private bool ShowEdit = false;
+    int iid; //收款单编号
+    DateTime? idate;       //日期
+    string?   iname;       //客户ID
+    decimal?  iyingshou;   //应收金额
+    string?   ileixing;    //付款类型
+    decimal?  ishishou;    //实收金额
+    string?   ibumeng;     //收款部门
+    string?   izhuangtai;  //账单状态
+    string?   ibeizhu;     //备注
+    string?   icaozuo;     //操作员
+
+    private void 显示编辑(收款账单 p)
+    {
+        if (iid != p.收款单编号)
+        {
+            iid = p.收款单编号;
+            idate = p.日期;
+            iname = p.客户ID;
+            iyingshou = p.应收金额;
+            ileixing = p.付款类型;
+            ishishou = p.实收金额;
+            ibumeng = p.收款部门;
+            izhuangtai = p.账单状态;
+            ibeizhu = p.备注;
+            icaozuo = p.操作员;
+        }
+        显示明细(iid);
+        pp = p;
+        ShowEdit = true;
+    }
+    private void 完成编辑()
+    {
+
+        if (izhuangtai == "作废" | izhuangtai == "未付款")
+        {
+            //修改该收款单下的条目，结清为否
+            var dt = new Dictionary<string, object>();
+            dt.Add("收款单号", pp.收款单编号);
+            dt.Add("结清", false);
+            HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_数码印刷").WhereColumns("收款单号").ExecuteCommand();
+            HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_CTP输出").WhereColumns("收款单号").ExecuteCommand();
+            HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_菲林输出").WhereColumns("收款单号").ExecuteCommand();
+            HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_设计制作").WhereColumns("收款单号").ExecuteCommand();
+            HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_后道加工").WhereColumns("收款单号").ExecuteCommand();
+            HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_彩喷写真").WhereColumns("收款单号").ExecuteCommand();
+            ishishou = 0;
+        }
+        pp.日期 = idate;           //日期
+        pp.客户ID = iname;         //客户ID
+        pp.应收金额 = iyingshou;   //应收金额
+        pp.付款类型 = ileixing;    //付款类型
+        pp.实收金额 = ishishou;    //实收金额
+        pp.收款部门 = ibumeng;     //收款部门
+        pp.账单状态 = izhuangtai;  //账单状态
+        pp.备注 = ibeizhu;         //备注
+        pp.操作员 = icaozuo;     //操作员
+        HongtengDbCon.Db.Updateable(pp).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+        ShowEdit = false;
+
+
+    }
+    private void 取消编辑()
+    {
+        ShowEdit = false;
+    }
+
+    //弹出窗口-结清账单
+    string? bb="";
+    private bool ShowSettle { get; set; }
+    private void ShowSettleEvent()
+    {
+        bb = "";
+        if (ishishou==null)
+        {
+            ishishou = 0;
+        }
+        if (iyingshou>0)
+        {
+            if (ishishou < (iyingshou/2))
+            {
+                bb = "实收金额异常，请检查！";
+            }
+
+        }
+
+
+        ShowSettle = true;
+    }
+    private async void 确定结清()
+    {
+        izhuangtai = "已结清";
+        pp.日期 = idate;           //日期
+        pp.客户ID = iname;         //客户ID
+        pp.应收金额 = iyingshou;   //应收金额
+        pp.付款类型 = ileixing;    //付款类型
+        pp.实收金额 = ishishou;    //实收金额
+        pp.收款部门 = ibumeng;     //收款部门
+        pp.账单状态 = izhuangtai;  //账单状态
+        pp.备注 = ibeizhu;         //备注
+        pp.操作员 = icaozuo;       //操作员
+        pp.打印时间 = DateTime.Now;
+        await HongtengDbCon.Db.Updateable(pp).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommandAsync();
+        ShowSettle = false;
+        //修改该收款单下的条目，结清为true
+        var dt = new Dictionary<string, object>();
+        dt.Add("收款单号", iid);
+        dt.Add("结清", true);
+        await HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_数码印刷").WhereColumns("收款单号").ExecuteCommandAsync();
+        await HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_CTP输出").WhereColumns("收款单号").ExecuteCommandAsync();
+        await HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_菲林输出").WhereColumns("收款单号").ExecuteCommandAsync();
+        await HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_设计制作").WhereColumns("收款单号").ExecuteCommandAsync();
+        await HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_后道加工").WhereColumns("收款单号").ExecuteCommandAsync();
+        await HongtengDbCon.Db.Updateable(dt).IgnoreColumns(ignoreAllNullColumns: true).AS("工作表_彩喷写真").WhereColumns("收款单号").ExecuteCommandAsync();
+        ShowEdit = false;
+
+        //调用计算各项实收
+        decimal b = 0;
+        if (ishishou > 0 & iyingshou>0)
+        {
+            b = ishishou.Value / iyingshou.Value;
+        }
+        if (iyingshou == 0 | iyingshou == null)
+        {
+            b = 1;
+        }
+        计算各项实收(iid, b);
+    }
+
+    private void 取消结清()
+    {
+        ShowSettle = false;
+    }
+
+    public async void 计算各项实收(int i, decimal b)
+    {
+         
+
+        var result1 = HongtengDbCon.Db.Updateable<工作表_数码印刷>()
+        .SetColumns(it => it.实收 == (it.应收 ?? 0) * b) //SetColumns是可以叠加的 写2个就2个字段赋值
+        .SetColumns(it => it.实收印制费 == ((it.印刷费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0) == 0 ? //判断除数是否为0
+            1 : (it.印刷费 ?? 0) / ((it.印刷费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0))) //除数为0取值1，不为零取相除结果
+            * (it.应收 ?? 0) * b)
+        .SetColumns(it => it.实收设计费 == ((it.印刷费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0) == 0 ? //判断除数是否为0
+            0 : (it.设计制作费 ?? 0) / ((it.印刷费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0))) //除数为0取值0，不为零取相除结果
+            * (it.应收 ?? 0) * b)
+        .Where(it => it.收款单号 == i)
+        .ExecuteCommand();
+
+        var result2 = HongtengDbCon.Db.Updateable<工作表_CTP输出>()
+        .SetColumns(it => it.实收 == (it.应收 ?? 0)*b)//SetColumns是可以叠加的 写2个就2个字段赋值
+        .SetColumns(it => it.实收CTP费 == ((it.版费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0) == 0 ? //判断除数是否为0
+            1 : (it.版费 ?? 0) / ((it.版费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0))) //除数为0取值1，不为零取相除结果
+            * (it.应收 ?? 0) * b)
+        .SetColumns(it => it.实收设计费 == ((it.版费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0) == 0 ? //判断除数是否为0
+            0 : (it.设计制作费 ?? 0) / ((it.版费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0))) //除数为0取值0，不为零取相除结果
+            * (it.应收 ?? 0) * b)
+        .Where(it => it.收款单号 == i)
+        .ExecuteCommand();
+
+        var result3 = HongtengDbCon.Db.Updateable<工作表_菲林输出>()
+        .SetColumns(it => it.实收 == (it.应收 ?? 0) * b)//SetColumns是可以叠加的 写2个就2个字段赋值
+        .SetColumns(it => it.实收菲林费 == ((it.菲林费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0) == 0 ? //判断除数是否为0
+            1 : (it.菲林费 ?? 0) / ((it.菲林费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0))) //除数为0取值1，不为零取相除结果
+            * (it.应收 ?? 0) * b)
+        .SetColumns(it => it.实收设计费 == ((it.菲林费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0) == 0 ? //判断除数是否为0
+            0 : (it.设计制作费 ?? 0) / ((it.菲林费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0))) //除数为0取值1，不为零取相除结果
+            * (it.应收 ?? 0) * b)
+        .Where(it => it.收款单号 == i)
+        .ExecuteCommand();
+
+        var result4 = HongtengDbCon.Db.Updateable<工作表_设计制作>()
+        .SetColumns(it => it.实收 == (it.应收 ?? 0) * b)//SetColumns是可以叠加的 写2个就2个字段赋值
+        .SetColumns(it => it.实收施工费 == ((it.施工费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0) == 0 ? //判断除数是否为0
+            1 : (it.施工费 ?? 0) / ((it.施工费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0))) //除数为0取值1，不为零取相除结果
+            * (it.应收 ?? 0) * b)
+        .SetColumns(it => it.实收设计费 == ((it.施工费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0) == 0 ? //判断除数是否为0
+            0 : (it.设计制作费 ?? 0) / ((it.施工费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0))) //除数为0取值0，不为零取相除结果
+            * (it.应收 ?? 0) * b)
+        .Where(it => it.收款单号 == i)
+        .ExecuteCommand();
+
+        var result5 = HongtengDbCon.Db.Updateable<工作表_后道加工>()
+        .SetColumns(it => it.实收 == (it.应收 ?? 0) * b)//SetColumns是可以叠加的 写2个就2个字段赋值
+        .SetColumns(it => it.实收加工费 == ((it.加工费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0) == 0 ? //判断除数是否为0
+            1 : (it.加工费 ?? 0) / ((it.加工费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0))) //除数为0取值1，不为零取相除结果
+            * (it.应收 ?? 0) * b)
+        .SetColumns(it => it.实收设计费 == ((it.加工费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0) == 0 ? //判断除数是否为0
+            0 : (it.设计制作费 ?? 0) / ((it.加工费 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0))) //除数为0取值0，不为零取相除结果
+            * (it.应收 ?? 0) * b)
+        .Where(it => it.收款单号 == i)
+        .ExecuteCommand();
+
+        var result6 = HongtengDbCon.Db.Updateable<工作表_彩喷写真>()
+        .SetColumns(it => it.实收 == (it.应收 ?? 0) * b) //SetColumns是可以叠加的 写2个就2个字段赋值
+        .SetColumns(it => it.实收打印费 == ((it.价格 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0) == 0 ? //判断除数是否为0
+            1 : (it.价格 ?? 0) / ((it.价格 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0))) //除数为0取值1，不为零取相除结果
+            * (it.应收 ?? 0) * b)
+        .SetColumns(it => it.实收设计费 == ((it.价格 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0) == 0 ? //判断除数是否为0
+            0 : (it.设计制作费 ?? 0) / ((it.价格 ?? 0) + (it.设计制作费 ?? 0) + (it.其他费用 ?? 0))) //除数为0取值0，不为零取相除结果
+            * (it.应收 ?? 0) * b)
+        .Where(it => it.收款单号 == i)
+        .ExecuteCommand();
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    //-----------------------------------------------明细单------------------------------------------------
+    //按分类筛选
+    IQueryable<dbModel> FilteredCountries
+    {
+        get
+        {
+            if (ch1 == true) itemsWhere1 = "印刷"; else itemsWhere1 = "";
+            if (ch2 == true) itemsWhere2 = "后道"; else itemsWhere2 = "";
+            if (ch3 == true) itemsWhere3 = "CTP"; else itemsWhere3 = "";
+            if (ch4 == true) itemsWhere4 = "菲林"; else itemsWhere4 = "";
+            if (ch5 == true) itemsWhere5 = "设计"; else itemsWhere5 = "";
+            if (ch6 == true) itemsWhere6 = "彩喷"; else itemsWhere6 = "";
+
+            var result = items?.Where(c => c.分类 == itemsWhere1 | c.分类 == itemsWhere2 | c.分类 == itemsWhere3 | c.分类 == itemsWhere4 | c.分类 == itemsWhere5 | c.分类 == itemsWhere6);
+
+            return result;
+        }
+    }
+
+    public float? TotalQuantity()  //数量合计
+    {
+        float? total = FilteredCountries.Sum(item => item.数量);
+        return total;
+    }
+
+    public decimal? Totalprice()  //价格合计
+    {
+        decimal? total = FilteredCountries.Sum(item => item.价格);
+        return total;
+    }
+
+    GridSort<dbModel> rankSort = GridSort<dbModel>
+    .ByDescending(x => x.临时选定)
+    .ThenAscending(x => x.分类)
+    .ThenAscending(x => x.ID);
+
+    private void 全部未结查询()
+    {
+        if (nameFilter == "" | nameFilter==null)
+        {
+            nameFilter = "客户名不能为空！";
+        }
+        else
+        {
+             
+            var q1 = HongtengDbCon.Db.Queryable<工作表_数码印刷>().Where(it => it.客户.Contains(nameFilter)).Where(it => it.结清 == false || it.结清 == null).Select(it => new dbModel { 分类 = "印刷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.纸张类型, 附加设计费 = it.设计制作费, 主费用 = it.印刷费, 其他费用=it.其他费用, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 收款单号 = it.收款单号, IsDelete=it.IsDelete });//select结构要一样
+            var q2 = HongtengDbCon.Db.Queryable<工作表_后道加工>().Where(it => it.客户.Contains(nameFilter)).Where(it => it.结清 == false || it.结清 == null).Select(it => new dbModel { 分类 = "后道", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.数量, 规格 = it.输出设备, 附加设计费 = it.设计制作费, 主费用 = it.加工费, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 收款单号 = it.收款单号, IsDelete=it.IsDelete });
+            var q3 = HongtengDbCon.Db.Queryable<工作表_CTP输出>().Where(it => it.客户.Contains(nameFilter)).Where(it => it.结清 == false || it.结清 == null).Select(it => new dbModel { 分类 = "CTP", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.CTP板材型号, 附加设计费=it.设计制作费, 主费用=it.版费,其他费用=it.其他费用, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已输出, 收款单号 = it.收款单号, IsDelete=it.IsDelete });
+            var q4 = HongtengDbCon.Db.Queryable<工作表_菲林输出>().Where(it => it.客户.Contains(nameFilter)).Where(it => it.结清 == false || it.结清 == null).Select(it => new dbModel { 分类 = "菲林", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.输出方向, 附加设计费 = it.设计制作费, 主费用 = it.菲林费,其他费用=it.其他费用, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 收款单号 = it.收款单号, IsDelete=it.IsDelete });
+            var q5 = HongtengDbCon.Db.Queryable<工作表_设计制作>().Where(it => it.客户.Contains(nameFilter)).Where(it => it.结清 == false || it.结清 == null).Select(it => new dbModel { 分类 = "设计", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.发送至, 附加设计费 = it.设计制作费, 主费用 = it.施工费, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 收款单号 = it.收款单号, IsDelete=it.IsDelete });
+            var q6 = HongtengDbCon.Db.Queryable<工作表_彩喷写真>().Where(it => it.客户.Contains(nameFilter)).Where(it => it.结清 == false || it.结清 == null).Select(it => new dbModel { 分类 = "彩喷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.规格, 附加设计费 = it.设计制作费, 主费用 = it.价格, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 收款单号 = it.收款单号, IsDelete = it.IsDelete });
+            var list = HongtengDbCon.Db.UnionAll(q1, q2, q3, q4, q5, q6).ToList();
+            items = list.Where(it => it.IsDelete == false).ToArray().AsQueryable();
+            foreach (var forzz in items)
+            {
+                forzz.临时选定 = true;
+            }
+        }
+    }
+
+    private void 查询()
+    {
+        DateTime d1 = date1;
+        DateTime d2 = date2;
+
+        if (date2 < date1)
+        {
+            d1 = date2;
+            d2 = date1;
+        }
+
+         
+
+        var q1 = HongtengDbCon.Db.Queryable<工作表_数码印刷>().Where(it => it.结清 == false || it.结清 == null)
+                .WhereIF(true, it => it.输出日期.Value.Date >= d1.Date && it.输出日期.Value.Date <= d2.Date)
+                .WhereIF(!string.IsNullOrEmpty(nameFilter), it => it.客户.Contains(nameFilter))
+
+                .Select(it => new dbModel { 分类 = "印刷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.纸张类型, 附加设计费 = it.设计制作费, 主费用 = it.印刷费, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 收款单号 = it.收款单号, IsDelete = it.IsDelete });
+
+        var q2 = HongtengDbCon.Db.Queryable<工作表_后道加工>().Where(it => it.结清 == false || it.结清 == null)
+                .WhereIF(true, it => it.日期.Value.Date >= d1.Date && it.日期.Value.Date <= d2.Date)
+                .WhereIF(!string.IsNullOrEmpty(nameFilter), it => it.客户.Contains(nameFilter))
+
+                .Select(it => new dbModel { 分类 = "后道", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.数量, 规格 = it.输出设备, 附加设计费 = it.设计制作费, 主费用 = it.加工费, 其他费用=it.其他费用, 价格 = it.应收, 要求说明 = it.要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 收款单号 = it.收款单号, IsDelete=it.IsDelete });
+
+        var q3 = HongtengDbCon.Db.Queryable<工作表_CTP输出>().Where(it => it.结清 == false || it.结清 == null)
+                .WhereIF(true, it => it.输出日期.Value.Date >= d1.Date && it.输出日期.Value.Date <= d2.Date)
+                .WhereIF(!string.IsNullOrEmpty(nameFilter), it => it.客户.Contains(nameFilter))
+
+                .Select(it => new dbModel { 分类 = "CTP", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.CTP板材型号, 附加设计费 = it.设计制作费, 主费用 = it.版费, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已输出, 收款单号 = it.收款单号, IsDelete=it.IsDelete });
+
+        var q4 = HongtengDbCon.Db.Queryable<工作表_菲林输出>().Where(it => it.结清 == false || it.结清 == null)
+               .WhereIF(true, it => it.输出日期.Value.Date >= d1.Date && it.输出日期.Value.Date <= d2.Date)
+               .WhereIF(!string.IsNullOrEmpty(nameFilter), it => it.客户.Contains(nameFilter))
+
+               .Select(it => new dbModel { 分类 = "菲林", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.输出方向, 附加设计费 = it.设计制作费, 主费用 = it.菲林费, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 收款单号 = it.收款单号, IsDelete=it.IsDelete });
+
+        var q5 = HongtengDbCon.Db.Queryable<工作表_设计制作>().Where(it => it.结清 == false || it.结清 == null)
+               .WhereIF(true, it => it.日期.Value.Date >= d1.Date && it.日期.Value.Date <= d2.Date)
+               .WhereIF(!string.IsNullOrEmpty(nameFilter), it => it.客户.Contains(nameFilter))
+
+               .Select(it => new dbModel { 分类 = "设计", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.发送至, 附加设计费 = it.设计制作费, 主费用 = it.施工费, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 收款单号 = it.收款单号, IsDelete = it.IsDelete });
+
+        var q6 = HongtengDbCon.Db.Queryable<工作表_彩喷写真>().Where(it => it.结清 == false || it.结清 == null)
+               .WhereIF(true, it => it.输出日期.Value.Date >= d1.Date && it.输出日期.Value.Date <= d2.Date)
+               .WhereIF(!string.IsNullOrEmpty(nameFilter), it => it.客户.Contains(nameFilter))
+               
+               .Select(it => new dbModel { 分类 = "彩喷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.规格, 附加设计费 = it.设计制作费, 主费用 = it.价格, 其他费用 = it.其他费用, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 收款单号 = it.收款单号, IsDelete = it.IsDelete });
+
+               var list = HongtengDbCon.Db.UnionAll(q1, q2, q3, q4, q5, q6).ToList();
+
+        items = list.Where(it => it.IsDelete == false).ToArray().AsQueryable();
+
+        foreach (var forzz in items)
+        {
+            forzz.临时选定 = true;
+        }
+
+    }
+
+
+    private void 生成账单()
+    {
+        if (FilteredCountries.Where(it => it.临时选定 == true).Any())
+        {
+             
+
+            string? xm = " "; //姓名
+            string? bm = " "; //部门
+            decimal? jghj = FilteredCountries.Where(it => it.临时选定 == true).Sum(item => item.价格); //价格合计
+            xm = AuthState?.UserName ?? " ";
+            bm = HongtengDbCon.Db.Queryable<员工>().First(it => it.姓名 == xm).部门 ?? " ";
+            var ddd = HongtengDbCon.Db.Insertable(new 收款账单() { 客户ID = nameFilter, 日期 = DateTime.Now, 操作员 = xm, 收款部门 = bm, 有效 = true, 应收金额 = jghj, 账单状态 = "新增" }).ExecuteReturnEntity();
+            int zd = ddd.收款单编号;
+            foreach (var forzz in FilteredCountries)
+            {
+                if (forzz.临时选定 == true)
+                {
+                    forzz.收款单号 = zd;
+                    switch (forzz.分类)
+                    {
+                        case "彩喷":
+                            HongtengDbCon.Db.UpdateableByDynamic
+                                             (new { 编号 = forzz.ID, 收款单号 = zd })
+                                             .AS("工作表_彩喷写真")
+                                             .WhereColumns("编号").ExecuteCommand();
+                            break;
+                        case "印刷":
+                            HongtengDbCon.Db.UpdateableByDynamic
+                                             (new { 编号 = forzz.ID, 收款单号 = zd })
+                                             .AS("工作表_数码印刷")
+                                             .WhereColumns("编号").ExecuteCommand();
+                            break;
+                        case "后道":
+                            HongtengDbCon.Db.UpdateableByDynamic
+                                             (new { 编号 = forzz.ID, 收款单号 = zd })
+                                             .AS("工作表_后道加工")
+                                             .WhereColumns("编号").ExecuteCommand();
+                            break;
+                        case "CTP":
+                            HongtengDbCon.Db.UpdateableByDynamic
+                                             (new { 编号 = forzz.ID, 收款单号 = zd })
+                                             .AS("工作表_CTP输出")
+                                             .WhereColumns("编号").ExecuteCommand();
+                            break;
+                        case "菲林":
+                            HongtengDbCon.Db.UpdateableByDynamic
+                                             (new { 编号 = forzz.ID, 收款单号 = zd })
+                                             .AS("工作表_菲林输出")
+                                             .WhereColumns("编号").ExecuteCommand();
+                            break;
+                        default:
+                            HongtengDbCon.Db.UpdateableByDynamic
+                                             (new { 编号 = forzz.ID, 收款单号 = zd })
+                                             .AS("工作表_设计制作")
+                                             .WhereColumns("编号").ExecuteCommand();
+                            break;
+                    }
+                }
+            }
+
+            新账单(ddd);
+        }
+        
+    }
+
+
+    private void 临时全选()
+    {
+        foreach (var forzz in items)
+        {
+            forzz.临时选定 = true;
+        }
+    }
+
+    private void 临时全否()
+    {
+        foreach (var forzz in items)
+        {
+            forzz.临时选定 = false;
+        }
+    }
+
+    private void 临时反选()
+    {
+        foreach (var forzz in items)
+        {
+            if (forzz.临时选定 == false)
+            {
+                forzz.临时选定 = true;
+            }
+            else
+            {
+                forzz.临时选定 = false;
+            }
+
+        }
+    }
+
+
+    public async Task DownloadExcel()
+    {
+        using (XLWorkbook workbook = new XLWorkbook())
+        {
+            IXLWorksheet worksheet = workbook.AddWorksheet("Mysheet");
+
+            worksheet.Cell(1, 1).Value = "分类";
+            worksheet.Cell(1, 2).Value = "ID";
+            worksheet.Cell(1, 3).Value = "日期";
+            worksheet.Cell(1, 4).Value = "客户";
+            worksheet.Cell(1, 5).Value = "工作名";
+            worksheet.Cell(1, 6).Value = "规格";
+            worksheet.Cell(1, 7).Value = "长";
+            worksheet.Cell(1, 8).Value = "宽";
+            worksheet.Cell(1, 9).Value = "数量";
+            worksheet.Cell(1, 10).Value = "价格";
+            worksheet.Cell(1, 11).Value = "要求说明";
+            worksheet.Cell(1, 12).Value = "制作员";
+            worksheet.Cell(1, 13).Value = "备注";
+            worksheet.Cell(1, 14).Value = "完成";
+
+            worksheet.Row(1).Style.Font.Bold = true;
+
+
+            int row = 2;
+            foreach (var forzz in FilteredCountries)
+            {
+                worksheet.Cell(row, 1).Value  = forzz.分类;
+                worksheet.Cell(row, 2).Value  = forzz.ID.ToString();
+                worksheet.Cell(row, 3).Value  = forzz.日期;
+                worksheet.Cell(row, 4).Value  = forzz.客户;
+                worksheet.Cell(row, 5).Value  = forzz.品名;
+                worksheet.Cell(row, 6).Value  = forzz.规格;
+                worksheet.Cell(row, 7).Value  = forzz.长;
+                worksheet.Cell(row, 8).Value  = forzz.宽;
+                worksheet.Cell(row, 9).Value  = forzz.数量;
+                worksheet.Cell(row, 10).Value = forzz.价格;
+                worksheet.Cell(row, 11).Value = forzz.要求说明;
+                worksheet.Cell(row, 12).Value = forzz.制作员1;
+                worksheet.Cell(row, 13).Value = forzz.备注;
+                worksheet.Cell(row, 14).Value = forzz.完成.ToString();
+                row++;
+            }
+
+            // 创建内存流用于保存工作簿
+            using (var memoryStream = new MemoryStream())
+            {
+                // 将工作簿保存到内存流中
+                workbook.SaveAs(memoryStream);
+
+                // 重置内存流的位置，以确保从头开始读取
+                memoryStream.Position = 0;
+
+                // 这里可以将内存流进行进一步处理，例如发送为电子邮件附件或者作为API响应返回等
+                var fileName = "账单" + DateTime.Now.ToString() + ".xlsx";
+
+                using var streamRef = new DotNetStreamReference(stream: memoryStream);
+
+                await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+            }
+        }
+
+    }
+
+
+    public async Task 下载收款单()
+    {
+        using (XLWorkbook workbook = new XLWorkbook())
+        {
+            IXLWorksheet worksheet = workbook.AddWorksheet("Mysheet");
+
+            worksheet.Cell(1, 1).Value = "编号";
+            worksheet.Cell(1, 2).Value = "日期";
+            worksheet.Cell(1, 3).Value = "客户";
+            worksheet.Cell(1, 4).Value = "应收金额";
+            worksheet.Cell(1, 5).Value = "付款类型";
+            worksheet.Cell(1, 6).Value = "实收金额";
+            worksheet.Cell(1, 7).Value = "收款部门";
+            worksheet.Cell(1, 8).Value = "账单状态";
+            worksheet.Cell(1, 9).Value = "打印时间";
+            worksheet.Cell(1, 10).Value = "备注";
+            worksheet.Cell(1, 11).Value = "操作员";
+
+            worksheet.Row(1).Style.Font.Bold = true;
+
+
+            int row = 2;
+            foreach (var forzz in reitems)
+            {
+                worksheet.Cell(row, 1).Value  = forzz.收款单编号.ToString();
+                worksheet.Cell(row, 2).Value  = forzz.日期;
+                worksheet.Cell(row, 3).Value  = forzz.客户ID;
+                worksheet.Cell(row, 4).Value  = forzz.应收金额;
+                worksheet.Cell(row, 5).Value  = forzz.付款类型;
+                worksheet.Cell(row, 6).Value  = forzz.实收金额;
+                worksheet.Cell(row, 7).Value  = forzz.收款部门;
+                worksheet.Cell(row, 8).Value  = forzz.账单状态;
+                worksheet.Cell(row, 9).Value  = forzz.打印时间;
+                worksheet.Cell(row, 10).Value = forzz.备注;
+                worksheet.Cell(row, 11).Value = forzz.操作员;
+
+                row++;
+            }
+
+            // 创建内存流用于保存工作簿
+            using (var memoryStream = new MemoryStream())
+            {
+                // 将工作簿保存到内存流中
+                workbook.SaveAs(memoryStream);
+
+                // 重置内存流的位置，以确保从头开始读取
+                memoryStream.Position = 0;
+
+                // 这里可以将内存流进行进一步处理，例如发送为电子邮件附件或者作为API响应返回等
+                var fileName = "收款" + DateTime.Now.ToString() + ".xlsx";
+
+                using var streamRef = new DotNetStreamReference(stream: memoryStream);
+
+                await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+            }
+        }
+
+    }
+
+
+}

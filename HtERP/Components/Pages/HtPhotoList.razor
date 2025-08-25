@@ -1,0 +1,891 @@
+﻿@page "/htphotolist"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using HtERP.Data
+@using ClosedXML.Excel
+@using System.Linq.Expressions
+@using System.Reflection
+
+@inject IJSRuntime JS
+@inject IJSRuntime JSRuntime
+
+@attribute [Authorize]
+
+<PageTitle>HtPhotoList</PageTitle>
+
+<div>
+    <strong><font size="5" style="color:#916f5e">彩喷写真</font></strong>
+    <em>（共: <strong>@numResults() </strong>条，数量: <strong>@TotalQuantity() </strong>，价格: <strong>@Totalprice()</strong>元。）</em>
+    <button class="btn btn-primary" @onclick="DownloadExcel">下载Excel</button>
+    <button class="btn btn-primary" @onclick="查询今天">今天</button>
+    <button class="btn btn-primary" @onclick="查询昨天">昨天</button>
+    <button class="btn btn-primary" @onclick="查询前天">前天</button>
+    <input type="number" min="1" @bind="查询编号" placeholder="编号..." style="width:80px" />
+    <button class="btn btn-primary" @onclick="按编号查询">按编号查询</button>
+    <button class="btn btn-primary" onclick="resetWidth()" style="background-color:darkturquoise">重置列宽</button>
+    <button class="btn btn-primary" @onclick="取消排序" title="恢复默认排序" style="background-color:darkturquoise">取消排序</button>
+
+</div>
+
+<div>
+
+    <input @bind="date1" id="tt" type="date" style="width:128px" />
+    <input @bind="date2" id="tt" type="date" style="width:128px" />
+    <input type="search" autofocus @bind="nameFilter" placeholder="客户..." style="width:120px" />
+    <input type="search" autofocus @bind="nameFilter1" placeholder="工作名..." style="width:120px" />
+    <input type="search" autofocus @bind="nameFilter2" placeholder="纸张类型..." style="width:120px" />
+    <input type="search" autofocus @bind="nameFilter3" placeholder="要求说明..." style="width:120px" />
+    <input type="search" autofocus @bind="nameFilter4" placeholder="送货地点..." style="width:120px" />
+    <input type="search" autofocus @bind="nameFilter5" placeholder="制作员..." style="width:120px" />
+    <button class="btn btn-primary" @onclick="查询">查询</button>
+    <button class="btn btn-primary" @onclick="清空搜索项">清空搜索项</button>
+</div>
+
+<div>
+    @if (items == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <table class="table tablemini">
+            <thead class="Stickyheader">
+                <tr class="ttr">
+                    <th style="width: 25px"><button class="btn trbtn" @onclick="@关闭子条目"><img src="/image/GreyLight.svg" width="18" /></button></th>
+                    <th style="width: 58px">
+                        <button class="btn trbtn" @onclick="@(() => SortData("编号"))">
+                            编号<img src="@GetSortIndicator("编号")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+                    <th style="width: 105px">
+                        <button class="btn trbtn" @onclick="@(() => SortData("日期"))">
+                            日期<img src="@GetSortIndicator("日期")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+                    <th style="width: 105px">
+                        <button class="btn trbtn" @onclick="@(() => SortData("客户"))">
+                            客户<img src="@GetSortIndicator("客户")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+
+                    <th style="width: 158px">
+                        <button class="btn trbtn" @onclick="@(() => SortData("文件或工作名"))">
+                            品名<img src="@GetSortIndicator("文件或工作名")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+
+                    <th style="width: 95px">
+                        <button class="btn trbtn" @onclick="@(() => SortData("纸张规格"))">
+                            纸张规格<img src="@GetSortIndicator("纸张规格")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+
+                    <th style="width: 39px">
+                        <button class="btn trbtn" @onclick="@(() => SortData("长"))">
+                            长<img src="@GetSortIndicator("长")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+                    <th style="width: 39px">
+                        <button class="btn trbtn" @onclick="@(() => SortData("宽"))">
+                            宽<img src="@GetSortIndicator("宽")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+                    <th style="width: 36px">
+                        <button class="btn trbtn" @onclick="@(() => SortData("张数"))">
+                            张数<img src="@GetSortIndicator("张数")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+                    <th style="width: 60px">
+                        <button class="btn trbtn" @onclick="@(() => SortData("单价"))">
+                            单价<img src="@GetSortIndicator("单价")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+                    <th style="width: 158px">
+                        <button class="btn trbtn" @onclick="@(() => SortData("要求说明"))">
+                            要求说明<img src="@GetSortIndicator("要求说明")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+                    <th style="width: 80px">
+                        <button class="btn trbtn" @onclick="@(() => SortData("送货地点"))">
+                            送货地点<img src="@GetSortIndicator("送货地点")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+                    <th style="width: 35px; background-color:rgba(128,255,138,0.5)">
+                        <button class="btn trbtn" @onclick="@(() => SortData("完成"))">
+                            完成 <img src="@GetSortIndicator("完成")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+
+
+                    <th style="width: 80px; background-color:rgba(185,215,200,0.5)">
+                        <button class="btn trbtn" @onclick="@(() => SortData("印刷费"))">
+                            印刷费<img src="@GetSortIndicator("印刷费")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+                    <th style="width: 80px; background-color:rgb(185,215,225)">
+                        <button class="btn trbtn" @onclick="@(() => SortData("设计费"))">
+                            设计费<img src="@GetSortIndicator("设计费")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+                    <th style="width: 80px">
+                        <button class="btn trbtn" @onclick="@(() => SortData("其他费用"))">
+                            其他费<img src="@GetSortIndicator("其他费用")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+                    <th style="width: 35px">
+                        <button class="btn trbtn" @onclick="@(() => SortData("已优惠"))">
+                            已优惠<img src="@GetSortIndicator("已优惠")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+                    <th style="width: 80px; background-color:rgb(255,255,128)">
+                        <button class="btn trbtn" @onclick="@(() => SortData("应收"))">
+                            应收<img src="@GetSortIndicator("应收")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+                    <th style="width: 35px">
+                        <button class="btn trbtn" @onclick="@(() => SortData("结清"))">
+                            结清<img src="@GetSortIndicator("结清")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+                    <th style="width: 70px">
+                        <button class="btn trbtn" @onclick="@(() => SortData("制作员"))">
+                            制作员<img src="@GetSortIndicator("制作员")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+                    <th style="width: 80px">
+                        <button class="btn trbtn" @onclick="@(() => SortData("备注"))">
+                            备注<img src="@GetSortIndicator("备注")" width="18" alt="↓" />
+                        </button>
+                        <div class="resize-handle"></div>
+                    </th>
+                    <th style="width: 25px">X</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var forecast in currentPageItems)
+                {
+                    <tr class="check-completed-row">
+                        <td><button class="btn trbtn" @onclick="@(() => 开关子条目(forecast.编号,forecast.后加工))"><img src="@修改图标(forecast.后加工)" width="18" alt="↓" /></button></td>
+                        <td>@forecast.编号</td>
+                        <td><input @bind="forecast.输出日期" id="日期" type="date"  @bind:after="@(() => 更新数据(forecast))" /></td>
+                        <td>
+                            <input @bind="forecast.客户" type="text"  @bind:after="@(() => 更新数据(forecast))"  list="options" />
+     
+                        </td>
+                        <td><input @bind="forecast.文件或工作名" type="text"  @bind:after="@(() => 更新数据(forecast))" /></td>
+                        <td>
+                            <input @bind="forecast.规格" type="text" style="background-color:rgba(255,255,205,0.5)" @bind:after="@(() => 更新数据(forecast))" list="zzoptions" />
+
+                        </td>
+                        <td><input @bind="forecast.打印长" type="text" style="text-align:right" @bind:after="@(() => 价格计算(forecast))" /></td>
+                        <td><input @bind="forecast.打印宽" type="text" style="text-align:right" @bind:after="@(() => 价格计算(forecast))" /></td>
+                        <td><input @bind="forecast.张数" type="text" style="text-align:center" @bind:after="@(() => 价格计算(forecast))" /></td>
+                        <td><input @bind="forecast.单价" type="text"  @bind:after="@(() => 自定单价计算(forecast))" /></td>
+                        <td><input @bind="forecast.要求及文件位置" type="text"  @bind:after="@(() => 更新数据(forecast))" /></td>
+                        <td><input @bind="forecast.送货地点" type="text"  @bind:after="@(() => 更新数据(forecast))" /></td>
+                        <td><input @bind="forecast.已经发送" class="cb-completed" type="checkbox" @bind:after="@(() => 更新数据(forecast))" /></td>
+
+                        <td>
+                            <input type="number" style="text-align: right;background-color:rgba(195,255,195,0.3)"
+                            value="@(forecast.价格?.ToString("F2") ?? "NULL")"
+                            @onchange="@(e => forecast.价格 = decimal.TryParse(e.Value?.ToString(), out decimal d) ? d : 0)"
+                            @onblur="@(() => 价格合计(forecast))"/>
+                        </td>
+                        <td>
+                            <input type="number" style="text-align: right"
+                                   value="@(forecast.设计制作费?.ToString("F2") ?? "NULL")"
+                                   @onchange="@(e => forecast.设计制作费 = decimal.TryParse(e.Value?.ToString(), out decimal d) ? d : 0)"
+                                   @onblur="@(() => 价格合计(forecast))"
+                             />
+                        </td>
+                        <td>
+                            <input type="number" style="text-align: right"
+                            value="@(forecast.其他费用?.ToString("F2") ?? "NULL")"
+                            @onchange="@(e => forecast.其他费用 = decimal.TryParse(e.Value?.ToString(), out decimal d) ? d : 0)"
+                            @onblur="@(() => 价格合计(forecast))" />
+                        </td>
+                        <td><input @bind="forecast.已优惠" type="checkbox" style="text-align:center" /></td>
+                        <td>
+                            <input type="number" style="text-align: right; background-color:rgba(255,255,188,0.5)" 
+                            value="@(forecast.应收?.ToString("F2") ?? "NULL")"
+                            @onchange="@(e => forecast.应收 = decimal.TryParse(e.Value?.ToString(), out decimal d) ? d : 0)"
+                            @onblur="@(() => 更新数据(forecast))"/>
+                        </td>
+                        <td><input @bind="forecast.结清" type="checkbox" style="text-align:center" disabled /></td>
+                        <td>
+                            <input @bind="forecast.制作员1" type="text"  @bind:after="@(() => 更新数据(forecast))" list="ygoptions" />
+
+                        </td>
+                        <td><input @bind="forecast.备注" type="text"  @bind:after="@(() => 更新数据(forecast))" /></td>
+                        <td> <button class="btn trbtn" @onclick="@(() => ShowDeleteEvent(forecast))" style="color:red"><img src="/image/red-trash2.svg" width="18" class="bi" aria-hidden="true" alt="删" /></button></td>
+                    </tr>
+                    @if (forecast.后加工==true)
+                    {
+                        <tr>
+                            <td></td>
+                            <td colspan="20">
+                                <div>
+                                    <HtPhotoProcessing @bind-ChildDataId=@forecast.编号 @bind-ChildDataQty=@forecast.张数 @bind-ChildDataCust="@forecast.客户" @bind-ChildDataName="@forecast.文件或工作名" @bind-ChildDataShow="@forecast.要求及文件位置" />
+
+                                </div>
+                            </td>
+                        </tr>
+                    }
+
+                }
+
+            </tbody>
+
+        </table>
+
+        <!-- 输入框下拉列表 -->
+        <datalist id="options">
+            <option value="现金"></option>
+            <option value="临时"></option>
+            @if (kh != null) foreach (var fore in kh)
+                {
+                    <option value="@fore.客户ID"></option>
+                }
+
+        </datalist>
+        <datalist id="ygoptions">
+            @if (yglist != null) foreach (var foryg in yglist)
+                {
+                    <option value="@foryg.姓名"></option>
+                }
+        </datalist>
+        <datalist id="zzoptions">
+            @if (zzlist != null) foreach (var forzz in zzlist)
+                {
+                    <option value="@forzz.类型"></option>
+                }
+        </datalist>
+
+        <!-- 分页控件 -->
+        <div class="pagination">
+            <button class="btn btn-primary" @onclick="新插一行">新建</button>
+
+
+            <span>共: <strong>@numResults()</strong>条</span>
+
+            <button class="btn btn-primary" @onclick="FirstPage" disabled="@(currentPage == 1)">首页</button>
+            <button class="btn btn-primary" @onclick="PreviousPage" disabled="@(currentPage == 1)">上一页</button>
+
+            <span>第 @currentPage 页 / 共 @totalPages 页</span>
+            <span>每页: </span>
+            <select @bind="pageSize" @bind:after="UpdatePagination">
+                <option value="15">15</option>
+                <option value="30">30</option>
+                <option value="80">80</option>
+                <option value="200">200</option>
+                <option value="500">500</option>
+            </select>
+
+            <button class="btn btn-primary" @onclick="NextPage" disabled="@(currentPage == totalPages)">下一页</button>
+            <button class="btn btn-primary" @onclick="LastPage" disabled="@(currentPage == totalPages)">末页</button>
+
+            <input type="number" min="1" max="@totalPages" @bind="gotoPage" style="width:60px" />
+            <button class="btn btn-primary" @onclick="GoToPage">跳转</button>
+        </div>
+
+    }
+    
+</div>
+
+@if (ShowDelete)
+{
+    <div class="custom-dialog" @onclick:stopPropagation>
+        <div class="dialog-content">
+            <h3> 是否确定要删除印刷单：</h3>
+            <h4> @aa</h4>
+            <p><button class="dialog-button" @onclick="Deleteit">确定删除</button> <button class="dialog-button" @onclick="HideDeleteEvent">取消</button></p>
+        </div>
+    </div>
+}
+
+
+
+
+
+@code {
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    AuthState? AuthState;
+
+    DateTime date1 = DateTime.Now.AddDays(-1);
+    DateTime date2 = DateTime.Now;
+
+    private 工作表_彩喷写真[]? forecasts;
+
+    IQueryable<工作表_彩喷写真>? items;
+
+    string nameFilter = string.Empty;
+    string nameFilter1 = string.Empty;
+    string nameFilter2 = string.Empty;
+    string nameFilter3 = string.Empty;
+    string nameFilter4 = string.Empty;
+    string nameFilter5 = string.Empty;
+
+    private 客户表[]? kh;
+    public 员工[] yglist;
+    public 纸张类型[] zzlist;
+    
+
+    public int numResults()
+    {
+        int Count = items.Count();
+        return Count;
+    }
+
+    public float? TotalQuantity()  //数量合计
+    {
+        float? total = items.Sum(item => item.张数);
+        return total;
+    }
+
+    public decimal? Totalprice()  //价格合计
+    {
+        decimal? total = items.Sum(item => item.应收);
+        return total;
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = authenticationState?.Result as AuthState;
+
+        forecasts = HongtengDbCon.Db.Queryable<工作表_彩喷写真>().Where(it => it.输出日期.Value.Date == date2.Date).Where(it => it.IsDelete == false).ToArray();
+        foreach (var forecast in forecasts)
+        {
+            forecast.后加工 = false;
+        }
+        items = forecasts.AsQueryable();
+
+        kh = HongtengDbCon.Db.Queryable<客户表>().Where(it => it.IsDelete == false).ToArray();
+        yglist = HongtengDbCon.Db.Queryable<员工>().Where(it => it.是否已离职 != true).ToArray();
+        zzlist = HongtengDbCon.Db.Queryable<纸张类型>().ToArray();
+
+        UpdatePagination();
+        await InvokeAsync(StateHasChanged);
+    }
+
+
+    private void 更新数据(工作表_彩喷写真 p)
+    {
+        HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+    }
+
+    private void 新插一行()
+    {
+
+        var ddd = HongtengDbCon.Db.Insertable(new 工作表_彩喷写真() { 客户 = "", 输出日期 = DateTime.Now, 制作员1 = AuthState?.UserName }).IgnoreColumns(ignoreNullColumn: true).ExecuteReturnEntity();
+        var dda = forecasts.ToList();
+        dda.Add(ddd);
+        forecasts = dda.ToArray();
+        items = forecasts.Where(it => it.IsDelete == false).AsQueryable();
+
+
+        // 计算总页数
+        int totalCount = items.Count();
+        totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        currentPage = totalPages; // 跳到最后一页
+        UpdatePagination();
+    }
+
+
+    private void 查询今天()
+    {
+        forecasts = HongtengDbCon.Db.Queryable<工作表_彩喷写真>().Where(it => it.输出日期.Value.Date == DateTime.Now.Date).Where(it => it.IsDelete == false).ToArray();
+        items = forecasts.AsQueryable();
+
+        currentPage = 1; // 重置到第一页
+        UpdatePagination();
+    }
+    private void 查询昨天()
+    {
+        forecasts = HongtengDbCon.Db.Queryable<工作表_彩喷写真>().Where(it => it.输出日期.Value.Date == DateTime.Now.AddDays(-1).Date).Where(it => it.IsDelete == false).ToArray();
+        items = forecasts.AsQueryable();
+
+        currentPage = 1; // 重置到第一页
+        UpdatePagination();
+    }
+    private void 查询前天()
+    {
+        forecasts = HongtengDbCon.Db.Queryable<工作表_彩喷写真>().Where(it => it.输出日期.Value.Date == DateTime.Now.AddDays(-2).Date).Where(it => it.IsDelete == false).ToArray();
+        items = forecasts.AsQueryable();
+
+        currentPage = 1; // 重置到第一页
+        UpdatePagination();
+    }
+
+    private void 查询()
+    {
+        DateTime d1 = date1;
+        DateTime d2 = date2;
+
+        if (date2 < date1)
+        {
+            d1 = date2;
+            d2 = date1;
+        }
+
+        forecasts = HongtengDbCon.Db.Queryable<工作表_彩喷写真>()
+                .WhereIF(true, it => it.输出日期.Value.Date >= d1.Date && it.输出日期.Value.Date <= d2.Date)
+                .WhereIF(!string.IsNullOrEmpty(nameFilter), it => it.客户.Contains(nameFilter))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter1), it => it.文件或工作名.Contains(nameFilter1))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter2), it => it.规格.Contains(nameFilter2))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter3), it => it.要求及文件位置.Contains(nameFilter3))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter4), it => it.送货地点.Contains(nameFilter4))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter5), it => it.制作员1.Contains(nameFilter5)).ToArray();
+        foreach (var forecast in forecasts)
+        {
+            forecast.后加工 = false;
+        }
+        items = forecasts.Where(it => it.IsDelete == false).AsQueryable();
+
+        currentPage = 1; // 重置到第一页
+        UpdatePagination();
+    }
+
+    private void 清空搜索项()
+    {
+        nameFilter = string.Empty;
+        nameFilter1 = string.Empty;
+        nameFilter2 = string.Empty;
+        nameFilter3 = string.Empty;
+        nameFilter4 = string.Empty;
+        nameFilter5 = string.Empty;
+    }
+
+    //弹出窗口-软删除一条
+    string? aa;
+    public 工作表_彩喷写真? pp;
+    public bool ShowDelete { get; set; }
+    private void HideDeleteEvent()
+    {
+        ShowDelete = false;
+    }
+    private void ShowDeleteEvent(工作表_彩喷写真 p)
+    {
+        pp = p;
+        aa = pp.编号 + "，" + pp.客户 + "【" + pp.文件或工作名 + "】";
+        ShowDelete = true;
+    }
+    private void Deleteit()
+    {
+        pp.IsDelete = true;
+         
+        HongtengDbCon.Db.Updateable(pp).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+        items = forecasts.AsQueryable().Where(it => it.IsDelete == false);
+
+        ShowDelete = false;
+
+        UpdatePagination();
+    }
+
+    
+
+    //关闭表格所有子条目
+    private void 关闭子条目()
+    {
+        foreach (var forecast in items)
+        {
+            forecast.后加工 = false;
+        }
+    }
+
+    //打开关闭表格子条目
+    private void 开关子条目(int id, bool? yesno)
+    {
+        if (yesno==true)
+        {
+            items.Where(p => p.编号 == id).First().后加工 = false;
+        }
+        else
+        {
+            items.Where(p => p.编号 == id).First().后加工 = true;
+        }
+    }
+
+    public string 修改图标(bool? yesno)
+    {
+        string imgsrc = "/image/triangleLeft.svg";
+        if (yesno == true)
+        {
+            imgsrc = "/image/triangleDown.svg";
+        }
+        else
+        {
+            imgsrc = "/image/triangleLeft.svg";
+        }
+        return imgsrc;
+    }
+
+    public void 价格计算(工作表_彩喷写真 p)  //应收价格计算
+    {
+        int dyc = 0;      // 打印长
+        int dyk = 0;      // 打印宽
+        decimal zs = 0;   //张数
+
+        decimal sjf = 0;  //设计费
+        decimal jg = 0;   //印刷费
+        decimal qt = 0;   //其他费用
+
+        decimal dj = 0;   //每平米价格
+        decimal qbj = 10; //起步价
+
+        if (p.打印长 > 0)
+        {
+            dyc = p.打印长 ?? 0;
+        }
+        if (p.打印宽 > 0)
+        {
+            dyk = p.打印宽 ?? 0;
+        }
+        if (p.张数 > 0)
+        {
+            zs = ((decimal)p.张数.Value);
+        }
+        sjf = p.设计制作费 ?? 0;
+        qt = p.其他费用 ?? 0;
+
+        dj = HongtengDbCon.Db.Queryable<公用设置>().First(it => it.ID == 1).数码打样每平米价格 ?? 0;
+        p.单价 = (decimal)(dyc * dyk * ((double)dj) * 0.000001);
+        jg = p.单价 * zs ?? 0;
+        if (jg < qbj)
+        {
+            jg = qbj;
+        }
+        p.价格 = jg;
+        p.应收 = sjf + jg + qt;
+
+        HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+    }
+
+    public void 自定单价计算(工作表_彩喷写真 p)  //应收价格计算
+    {
+        decimal zs = 0;   //张数
+
+        decimal sjf = 0;  //设计费
+        decimal jg = 0;   //印刷费
+        decimal qt = 0;   //其他费用
+
+        decimal dj = 0;   //单张价格
+        decimal qbj = 10; //起步价
+
+        if (p.设计制作费 > 0)
+        {
+            sjf = p.设计制作费 ?? 0;
+        }
+        if (p.其他费用 > 0)
+        {
+            qt = p.其他费用 ?? 0;
+        }
+        if (p.张数 > 0)
+        {
+            zs = ((decimal)p.张数.Value);
+        }
+        if (p.单价 > 0)
+        {
+            dj = p.单价 ?? 0;
+        }
+
+        if (dj * zs > qbj)
+        {
+            jg = dj * zs;
+        }
+        else
+        {
+            jg = qbj;
+        }
+        
+        p.价格 = jg;
+        p.应收 = sjf + jg + qt;
+        
+        HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+    }
+
+    public void 价格合计(工作表_彩喷写真 p)  //应收价格计算
+    {
+        decimal sjf = 0; //设计费
+        decimal jg = 0; //印刷费
+        decimal qt = 0;   //其他费用
+         if (p.设计制作费 > 0)
+        {
+            sjf = p.设计制作费 ?? 0;
+        }
+        if (p.价格 > 0)
+        {
+            jg = p.价格 ?? 0;
+        }
+        if (p.其他费用 > 0)
+        {
+            qt = p.其他费用 ?? 0;
+        }
+        p.应收 = sjf + jg + qt;
+        HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+    }
+
+    // 导出Excel文件
+    public async Task DownloadExcel()
+    {
+        using (XLWorkbook workbook = new XLWorkbook())
+        {
+            IXLWorksheet worksheet = workbook.AddWorksheet("Mysheet");
+
+            worksheet.Cell(1, 1).Value = "完成";
+            worksheet.Cell(1, 2).Value = "编号";
+            worksheet.Cell(1, 3).Value = "日期";
+            worksheet.Cell(1, 4).Value = "客户";
+            worksheet.Cell(1, 5).Value = "工作名";
+            worksheet.Cell(1, 6).Value = "数量";
+            worksheet.Cell(1, 7).Value = "规格";
+            worksheet.Cell(1, 8).Value = "价格";
+            worksheet.Cell(1, 9).Value = "要求";
+            worksheet.Cell(1, 10).Value = "送货地址";
+            worksheet.Cell(1, 11).Value = "制作员";
+            worksheet.Cell(1, 12).Value = "备注";
+
+            worksheet.Row(1).Style.Font.Bold = true;
+
+
+            int row = 2;
+            foreach (var forzz in items)
+            {
+                worksheet.Cell(row, 1).Value = forzz.已经发送.ToString();
+                worksheet.Cell(row, 2).Value = forzz.编号.ToString();
+                worksheet.Cell(row, 3).Value = forzz.输出日期;
+                worksheet.Cell(row, 4).Value = forzz.客户;
+                worksheet.Cell(row, 5).Value = forzz.文件或工作名;
+                worksheet.Cell(row, 6).Value = forzz.张数;
+                worksheet.Cell(row, 7).Value = forzz.规格;
+                worksheet.Cell(row, 8).Value = forzz.应收;
+                worksheet.Cell(row, 9).Value = forzz.要求及文件位置;
+                worksheet.Cell(row, 10).Value = forzz.送货地点;
+                worksheet.Cell(row, 11).Value = forzz.制作员1;
+                worksheet.Cell(row, 12).Value = forzz.备注;
+                row++;
+            }
+
+            // 创建内存流用于保存工作簿
+            using (var memoryStream = new MemoryStream())
+            {
+                // 将工作簿保存到内存流中
+                workbook.SaveAs(memoryStream);
+
+                // 重置内存流的位置，以确保从头开始读取
+                memoryStream.Position = 0;
+
+                // 这里可以将内存流进行进一步处理，例如发送为电子邮件附件或者作为API响应返回等
+                var fileName = "印刷"+DateTime.Now.ToString()+".xlsx";
+
+                using var streamRef = new DotNetStreamReference(stream: memoryStream);
+
+                await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+            }
+        }
+
+    }
+
+    
+
+    // -------------------------------------排序-----------------------------------
+    // 排序状态
+    private string currentSortColumn = "";
+    private bool isAscending = true;
+
+    // 列名映射 - 确保属性名正确
+    private readonly Dictionary<string, string> columnMappings = new Dictionary<string, string>
+    {
+        { "编号", "编号" },
+        { "日期", "输出日期" },
+        { "客户", "客户" },
+        { "文件或工作名", "文件或工作名" },
+        { "纸张规格", "规格" },
+        { "长", "打印长" },
+        { "宽", "打印宽" },
+        { "张数", "张数" },
+        { "单价", "单价" },
+        { "要求说明", "要求及文件位置" },
+        { "送货地点", "送货地点" },
+        { "完成", "已经发送" },
+        { "印刷费", "价格" },
+        { "设计费", "设计制作费" },
+        { "其他费用", "其他费用" },
+        { "已优惠", "已优惠" },
+        { "应收", "应收" },
+        { "结清", "结清" },
+        { "制作员", "制作员1" },
+        { "备注", "备注" }
+    };
+
+    // 通用排序方法 - 添加 StateHasChanged 调用
+    private void SortData(string columnName)
+    {
+        if (!columnMappings.TryGetValue(columnName, out var propertyName))
+            return;
+
+        if (currentSortColumn == columnName)
+        {
+            // 相同列切换排序方向
+            isAscending = !isAscending;
+        }
+        else
+        {
+            // 新列默认升序
+            currentSortColumn = columnName;
+            isAscending = true;
+        }
+
+        // 应用排序
+        try
+        {
+            if (isAscending)
+            {
+                items = items.OrderByDynamic(propertyName);
+            }
+            else
+            {
+                items = items.OrderByDescendingDynamic(propertyName);
+            }
+
+            // 强制刷新UI
+            UpdatePagination();
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"排序错误: {ex.Message}");
+        }
+
+        currentPage = 1; // 排序后回到第一页
+        UpdatePagination();
+
+    }
+
+    // 取消排序方法
+    private void 取消排序()
+    {
+        currentSortColumn = "";
+        isAscending = true;
+
+        // 重置为默认排序（按日期降序，编号升序）
+        //items = items.OrderByDescending(x => x.日期).ThenBy(x => x.编号);
+        // 重置为默认排序（按编号升序）
+        items = items.OrderBy(x => x.编号);
+        currentPage = 1;
+        UpdatePagination();
+    }
+
+    // 获取排序指示器图片 - 确保路径正确
+    private string GetSortIndicator(string columnName)
+    {
+        if (currentSortColumn != columnName)
+            return "/image/arrowNone.svg"; // 无排序状态
+
+        return isAscending ? "/image/arrowUp.svg" : "/image/arrowDown.svg";
+    }
+
+
+    // --------------------------------分页相关变量-----------------------------
+    private int currentPage = 1;
+    private int pageSize = 30;
+    private int totalPages = 1;
+    private int gotoPage = 1;
+    private 工作表_彩喷写真[]? currentPageItems;
+
+    // 其他现有变量保持不变...
+
+    // 分页方法
+    private void UpdatePagination()
+    {
+        if (items == null || !items.Any())
+        {
+            totalPages = 1;
+            currentPageItems = Array.Empty<工作表_彩喷写真>();
+            return;
+        }
+
+        // 计算总页数
+        int totalCount = items.Count();
+        totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        // 确保当前页在有效范围内
+        currentPage = Math.Clamp(currentPage, 1, totalPages);
+
+        // 获取当前页数据
+        currentPageItems = items
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToArray();
+    }
+
+    private void FirstPage()
+    {
+        currentPage = 1;
+        UpdatePagination();
+    }
+
+    private void PreviousPage()
+    {
+        currentPage = Math.Max(1, currentPage - 1);
+        UpdatePagination();
+    }
+
+    private void NextPage()
+    {
+        currentPage = Math.Min(totalPages, currentPage + 1);
+        UpdatePagination();
+    }
+
+    private void LastPage()
+    {
+        currentPage = totalPages;
+        UpdatePagination();
+    }
+
+    private void GoToPage()
+    {
+        currentPage = Math.Clamp(gotoPage, 1, totalPages);
+        UpdatePagination();
+    }
+
+    //--按编号查询--
+    private int? 查询编号 = null;
+    private void 按编号查询()
+    {
+        if (查询编号.HasValue)
+        {
+            forecasts = HongtengDbCon.Db.Queryable<工作表_彩喷写真>()
+                .Where(it => it.编号 == 查询编号.Value && it.IsDelete == false)
+                .ToArray();
+            items = forecasts.AsQueryable();
+            currentPage = 1; // 重置到第一页
+            UpdatePagination();
+        }
+    }
+
+
+}

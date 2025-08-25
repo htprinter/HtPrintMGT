@@ -1,0 +1,142 @@
+﻿@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">Ht印刷管理</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column">
+
+
+        <div class="nav-item px-1">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <img src="/image/svg-white/White_house-door-fill.svg" width="20" class="bi" aria-hidden="true" />Home
+            </NavLink>
+        </div>
+
+        <AuthorizeView>
+            <div class="nav-item px-1">
+                <NavLink class="nav-link" href="Customsearch">
+                    <img src="/image/svg-white/White_binoculars-fill.svg" width="20" class="bi" aria-hidden="true" />综合查询
+                </NavLink>
+            </div>
+
+            <hr style="margin: 0.1rem 0; height:2px;color:rgba(255,255,255,0.6)" />
+            <div class="nav-item px-1">
+                <NavLink class="nav-link" href="HtDesignList">
+                    <img src="/image/svg-white/White_pencil-square-fill.svg" width="20" class="bi" aria-hidden="true" />设计制作
+                </NavLink>
+            </div>
+            <div class="nav-item px-1">
+                <NavLink class="nav-link" href="HtFilmList">
+                    <img src="/image/svg-white/White_receipt-fill.svg" width="20" class="bi" aria-hidden="true" />菲林输出
+                </NavLink>
+            </div>
+            <div class="nav-item px-1">
+                <NavLink class="nav-link" href="HtCtpList">
+                    <img src="/image/svg-white/White_folder2-fill.svg" width="20" class="bi" aria-hidden="true" />CTP制版
+                </NavLink>
+            </div>
+            <div class="nav-item px-1">
+                <NavLink class="nav-link" href="htphotolist">
+                    <img src="/image/svg-white/White_printerphoto-fill.svg" width="20" class="bi" aria-hidden="true" />彩喷写真
+                </NavLink>
+            </div>
+            <div class="nav-item px-1">
+                <NavLink class="nav-link" href="htprintlist" >
+                    <img src="/image/svg-white/White_printerpro-fill.svg" width="20" class="bi" aria-hidden="true" />印刷管理
+                </NavLink>
+            </div>
+            <div class="nav-item px-1">
+                <NavLink class="nav-link" href="HtProcessing">
+                    <img src="/image/svg-white/White_layer-backward.svg" width="20" class="bi" aria-hidden="true" />后道工序
+                </NavLink>
+            </div>
+            <hr style="margin: 0.1rem 0; height:2px;color:rgba(255,255,255,0.6)" />
+            <div class="nav-item px-1">
+                <NavLink class="nav-link" href="HtReceipt">
+                    <img src="/image/svg-white/White_inboxes2-fill.svg" width="20" class="bi" aria-hidden="true" />收款查询
+                </NavLink>
+            </div>
+            <div class="nav-item px-1">
+                <NavLink class="nav-link" href="HtCharge">
+                    <img src="/image/svg-white/White_cash.svg" width="20" class="bi" aria-hidden="true" />充值管理
+                </NavLink>
+            </div>
+            <div class="nav-item px-1">
+                <NavLink class="nav-link" href="Customer">
+                    <img src="/image/svg-white/White_person-lines-fill.svg" width="20" class="bi" aria-hidden="true" />客户信息
+                </NavLink>
+            </div>
+            <div class="nav-item px-1">
+                <NavLink class="nav-link" href="Staff">
+                    <img src="/image/svg-white/White_person-fill.svg" width="20" class="bi" aria-hidden="true" />员工信息
+                </NavLink>
+            </div>
+            
+            @if (yesOrNoAdmin())
+            {
+                <div class="nav-item px-1">
+                    <NavLink class="nav-link" href="Preferences">
+                        <img src="/image/svg-white/White_gear-fill.svg" width="20" class="bi" aria-hidden="true" />设置
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-1">
+                    <NavLink class="nav-link" href="Expenditure">
+                        <img src="/image/svg-white/White_journals-fill.svg" width="20" class="bi" aria-hidden="true" />支出登记
+                    </NavLink>
+                </div>
+            }
+        </AuthorizeView>
+
+        <div class="nav-item px-1">
+            <NavLink class="nav-link" href="help">
+                <img src="/image/svg-white/White_question-square-fill.svg" width="20" class="bi" aria-hidden="true" />使用手册
+            </NavLink>
+        </div>
+
+
+    </nav>
+</div>
+
+@code {
+    [CascadingParameter]
+
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    AuthState? AuthState;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        AuthState = authenticationState?.Result as AuthState;
+
+        await InvokeAsync(StateHasChanged);
+
+    }
+
+    bool isAdmin = false;
+    private bool yesOrNoAdmin()
+    {
+        AuthState = authenticationState?.Result as AuthState;
+        if (AuthState==null)
+        {
+            isAdmin = false;
+            return isAdmin;
+        }
+        else
+        {
+            isAdmin = AuthState.IsAdmin ?? false;
+            return isAdmin;
+        }
+        
+    }
+}

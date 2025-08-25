@@ -1,0 +1,570 @@
+﻿@page "/Preferences"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using HtERP.Data
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using ClosedXML.Excel
+@inject IJSRuntime JS
+@attribute [Authorize]
+<script src="bootstrap/bootstrap.min.js"></script>
+
+<PageTitle>Preferences</PageTitle>
+
+<h3>各类设置</h3>
+
+<ul class="nav nav-tabs" id="myTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="sit1-tab" data-bs-toggle="tab" data-bs-target="#sit1-tab-pane" type="button" role="tab" aria-controls="sit1-tab-pane" aria-selected="true">公用设置</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="ctp1-tab" data-bs-toggle="tab" data-bs-target="#ctp1-tab-pane" type="button" role="tab" aria-controls="ctp1-tab-pane" aria-selected="false">CTP板材型号</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="ctp4-tab" data-bs-toggle="tab" data-bs-target="#ctp4-tab-pane" type="button" role="tab" aria-controls="ctp2-tab-pane" aria-selected="false">CTP要求设置</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="print1-tab" data-bs-toggle="tab" data-bs-target="#print1-tab-pane" type="button" role="tab" aria-controls="print1-tab-pane" aria-selected="false">纸张类型</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="print2-tab" data-bs-toggle="tab" data-bs-target="#print2-tab-pane" type="button" role="tab" aria-controls="print2-tab-pane" aria-selected="false">数码印刷价目</button>
+    </li>
+</ul>
+<div class="tab-content" id="myTabContent">
+    <div class="tab-pane fade show active" id="sit1-tab-pane" role="tabpanel" aria-labelledby="sit1-tab" tabindex="0">
+        @if (Isadmin)
+            {
+                <h4>公用设置 @pubSet.ID</h4>
+                <p>菲林起步价：<input @bind="pubSet.菲林起步价" type="text" style="width:88px" /></p>
+                <p>菲林每平米价格：<input @bind="pubSet.菲林每平米价格" type="text" style="width:88px" /></p>
+                <p>资源费每张价格：<input @bind="pubSet.资源费每张价格" type="text" style="width:88px" /></p>
+                <p>数码彩喷每平米价格：<input @bind="pubSet.数码打样每平米价格" type="text" style="width:88px" /></p>
+                <p>CTP每平米价格：<input @bind="pubSet.CTP每平米价格" type="text" style="width:88px" /></p>
+                <p>切割每米价格：<input @bind="pubSet.切割每米价格" type="text" style="width:88px" /></p>
+                <p>默认折扣方案：<input @bind="pubSet.默认折扣方案" type="text" style="width:88px" /></p>
+                <hr />
+                <div>
+                <h4>设计费计算弹出对话框设置：</h4>
+                <p>说明：计算方式分两种，1 按色数计算；2 按面积计算。两种方式各提供7个选项，价格单位“元”，面积计算是按每平米价格</p>
+                <p>每色价格：
+                    <input @bind="pubSet.计算每色一" type="number" style="width:58px" />
+                    <input @bind="pubSet.计算每色二" type="number" style="width:58px" />
+                    <input @bind="pubSet.计算每色三" type="number" style="width:58px" />
+                    <input @bind="pubSet.计算每色四" type="number" style="width:58px" />
+                    <input @bind="pubSet.计算每色五" type="number" style="width:58px" />
+                    <input @bind="pubSet.计算每色六" type="number" style="width:58px" />
+                    <input @bind="pubSet.计算每色七" type="number" style="width:58px" />
+                </p>
+                <p>每平米价格：
+                    <input @bind="pubSet.计算每平米一" type="number" style="width:58px" />
+                    <input @bind="pubSet.计算每平米二" type="number" style="width:58px" />
+                    <input @bind="pubSet.计算每平米三" type="number" style="width:58px" />
+                    <input @bind="pubSet.计算每平米四" type="number" style="width:58px" />
+                    <input @bind="pubSet.计算每平米五" type="number" style="width:58px" />
+                    <input @bind="pubSet.计算每平米六" type="number" style="width:58px" />
+                    <input @bind="pubSet.计算每平米七" type="number" style="width:58px" />
+                </p>
+                </div>
+            <hr />
+            <p> <button class="btn btn-primary" @onclick="@(() => 保存公用设置(pubSet))">保存</button></p>
+            <p>公用设置说明：以上设置为全局公用设置，修改后会影响所有相关的计算。</p>
+             }
+        需要超级管理员修改。
+    </div>
+
+    <div class="tab-pane fade" id="ctp1-tab-pane" role="tabpanel" aria-labelledby="ctp1-tab" tabindex="0">
+       @if (itemsCtp == null)
+       {
+            <p><em>Loading...</em></p>
+       }
+       else
+       {
+           <div>
+               <QuickGrid Items="@itemsCtp" Theme="corporate" class="table">
+       
+                   <PropertyColumn Property="@(c => c.编号)" Sortable="true" Align="Align.Right" Title="序号" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
+       
+                   <TemplateColumn Title="CTP板材型号" SortBy="@CTP型号排序" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                        <InputText id="textkh" type="text" @bind-Value=@(context.CTP板材型号ID) style="min-width:168px" onblur="@(() => 更新数据(context))" />
+                   </TemplateColumn>
+       
+                   <TemplateColumn Title="价格" SortBy="@CTP价格排序" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                        <input id="textlxr" type="text" @bind="@(context.价格)" style="text-align: right; width:128px" class="priceinput" onblur="@(() => 更新数据(context))" />
+                   </TemplateColumn>
+       
+                   <TemplateColumn Title="说明" SortBy="@CTP说明排序" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                       <input id="textsj" type="text" @bind="@(context.说明)" onblur="@(() => 更新数据(context))" />
+                   </TemplateColumn>
+
+                    <TemplateColumn Title="长" SortBy="@CTP长排序" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                        <input id="textgsm" type="text" @bind="@(context.长)" style="text-align: right; max-width:128px" onblur="@(() => 更新数据(context))" />
+                   </TemplateColumn>
+
+                    <TemplateColumn Title="宽" SortBy="@CTP宽排序" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                        <input id="textdz" type="text" @bind="@(context.宽)" style="text-align: right; max-width:128px" onblur="@(() => 更新数据(context))" />
+                   </TemplateColumn>
+
+                    <TemplateColumn Title="厚" SortBy="@CTP厚排序" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                        <input id="textlx" type="text" @bind="@(context.厚)" style="text-align: right; max-width:128px" onblur="@(() => 更新数据(context))" />
+                   </TemplateColumn>
+       
+                   <TemplateColumn Title="备注" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                        <input id="textbz" type="text" @bind="@(context.备注)" onblur="@(() => 更新数据(context))" />
+                   </TemplateColumn>
+                    <TemplateColumn Title="" Align="Align.Center" >
+                        <button class="btn trbtn" @onclick="() => 删除CTP板材(context)" style="color:red"><img src="/image/red-trash2.svg" width="18" class="bi" aria-hidden="true" alt="删" /></button>
+                    </TemplateColumn>
+       
+               </QuickGrid>
+           </div>
+            <p> <button class="btn btn-primary" @onclick="ctp新插一行">新建</button>   共: <strong>@numResults()</strong>条 <button class="btn btn-primary" @onclick="AllCTP板材">刷新</button></p>
+
+            
+       
+       }
+
+    </div>
+
+   
+    <div class="tab-pane fade" id="ctp4-tab-pane" role="tabpanel" aria-labelledby="ctp2-tab" tabindex="0">
+        <div class="row">
+            <div class="col-lg-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-header bg-primary py-2">CTP加网线数</div>
+                    <div class="card-body">
+                        
+                        @if (itemsCtpWx == null)
+                        {
+                            <p><em>Loading...</em></p>
+                        }
+                        else
+                        {
+                            <div>
+                                <QuickGrid Items="@itemsCtpWx" Theme="corporate" class="table">
+
+                                    <PropertyColumn Property="@(c => c.编号)" Sortable="true" Align="Align.Right" Title="序号" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
+
+                                    <TemplateColumn Title="加网线数" SortBy="@CTP网线排序" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                                        <input id="textgsm" type="text" @bind="@(context.加网线数)" style="min-width:128px" onblur="@(() => ctp网线更新(context))" />
+                                    </TemplateColumn>
+                                    <TemplateColumn Title="" Align="Align.Center">
+                                        <button class="btn trbtn" @onclick="() => 删除加网线数(context)" style="color:red"><img src="/image/red-trash2.svg" width="18" class="bi" aria-hidden="true" alt="删" /></button>
+                                    </TemplateColumn>
+                                </QuickGrid>
+                            </div>
+                            <p> <button class="btn btn-primary" @onclick="ctp网线插一行">新建</button>   <button class="btn btn-primary" @onclick="AllCTP板材">刷新</button></p>
+
+                        }
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-header bg-primary py-2">CTP网点类型</div>
+                    <div class="card-body">
+                        
+                        @if (itemsCtpWd == null)
+                        {
+                            <p><em>Loading...</em></p>
+                        }
+                        else
+                        {
+                            <div>
+                                <QuickGrid Items="@itemsCtpWd" Theme="corporate" class="table">
+
+                                    <PropertyColumn Property="@(c => c.编号)" Sortable="true" Align="Align.Right" Title="序号" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
+
+                                    <TemplateColumn Title="网点类型" SortBy="@CTP网点排序" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                                        <InputText id="textkh" type="text" @bind-Value=@(context.网点类型) style="min-width:168px" onblur="@(() => ctp网点更新(context))" />
+                                    </TemplateColumn>
+                                    <TemplateColumn Title="" Align="Align.Center">
+                                        <button class="btn trbtn" @onclick="() => 删除网点类型(context)" style="color:red"><img src="/image/red-trash2.svg" width="18" class="bi" aria-hidden="true" alt="删" /></button>
+                                    </TemplateColumn>
+                                </QuickGrid>
+                            </div>
+                            <p> <button class="btn btn-primary" @onclick="ctp网点插一行">新建</button>  <button class="btn btn-primary" @onclick="AllCTP板材">刷新</button></p>
+                        }
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-header bg-primary py-2">CTP印刷机咬口要求</div>
+                    <div class="card-body">
+
+                        @if (itemsCtpYk == null)
+                        {
+                            <p><em>Loading...</em></p>
+                        }
+                        else
+                        {
+                            <div>
+                                <QuickGrid Items="@itemsCtpYk" Theme="corporate" class="table">
+
+                                    <PropertyColumn Property="@(c => c.编号)" Sortable="true" Align="Align.Right" Title="序号" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
+
+                                    <TemplateColumn Title="印刷机咬口要求" SortBy="@CTP咬口排序" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                                        <InputText id="textkh" type="text" @bind-Value=@(context.印刷机咬口要求) style="min-width:168px" onblur="@(() => ctp咬口更新(context))" />
+                                    </TemplateColumn>
+                                    <TemplateColumn Title="" Align="Align.Center">
+                                        <button class="btn trbtn" @onclick="() => 删除咬口要求(context)" style="color:red"><img src="/image/red-trash2.svg" width="18" class="bi" aria-hidden="true" alt="删" /></button>
+                                    </TemplateColumn>
+                                </QuickGrid>
+                            </div>
+                            <p> <button class="btn btn-primary" @onclick="ctp咬口插一行">新建</button>  <button class="btn btn-primary" @onclick="AllCTP板材">刷新</button></p>
+                        }
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <div class="tab-pane fade" id="print1-tab-pane" role="tabpanel" aria-labelledby="print1-tab" tabindex="0">
+        @if (itemsZz == null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else
+        {
+            <div>
+                <QuickGrid Items="@itemsZz" Theme="corporate" class="table">
+
+                    <PropertyColumn Property="@(c => c.编号)" Sortable="true" Align="Align.Right" Title="序号" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
+
+                    <TemplateColumn Title="纸张类型" SortBy="@纸张类型排序" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                        <InputText id="textkh" type="text" @bind-Value=@(context.类型) style="min-width:168px" onblur="@(() => 纸张类型更新(context))" />
+                    </TemplateColumn>
+                    <TemplateColumn Title="" Align="Align.Center">
+                        <button class="btn trbtn" @onclick="() => 删除纸张类型(context)" style="color:red"><img src="/image/red-trash2.svg" width="18" class="bi" aria-hidden="true" alt="删" /></button>
+                    </TemplateColumn>
+                </QuickGrid>
+            </div>
+            <p> <button class="btn btn-primary" @onclick="纸张类型插一行">新建</button>  <button class="btn btn-primary" @onclick="AllCTP板材">刷新</button></p>
+        }
+    </div>
+
+    <div class="tab-pane fade" id="print2-tab-pane" role="tabpanel" aria-labelledby="print2-tab" tabindex="0">
+        <p>设置说明：价格和张数设置大于零为有效，如只要单一价格请只设置费率一，如需要两挡阶梯价请设置“费率一”“费率二”和“一挡张数”，如要三挡阶梯价设置“费率一”“费率二”“费率三”和“一挡张数”“二挡张数”<em>（注：计算公式为【价格 = 费率一 * 一挡张数 + 费率二 * 二挡张数 + 费率三 *(总张数 - 一挡张数 - 二挡张数)】）</em></p>
+        @if (itemsYjm == null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else
+        {
+            <table class="table">
+                <thead>
+                    <tr class="ttr">
+                        <th><button class="btn trbtn colorwhite" @onclick="编号排序">编号<img src="@bhimg" width="18" alt="↓" /></button></th>
+                        <th><button class="btn trbtn colorwhite" @onclick="类别排序">收费类别<img src="@lximg" width="18" alt="↓" /></button></th>
+                        <th>起步价</th>
+                        <th>费率一</th>
+                        <th>费率二</th>
+                        <th>费率三</th>
+                        <th>费率四</th>
+                        <th>说明</th>
+                        <th>一档张数</th>
+                        <th>二档张数</th>
+                        <th>三档张数</th>
+                        <th>四档张数</th>
+                        <th>删</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var forecast in itemsYjm)
+                    {
+                        <tr>
+                            <td style="width:70px">@forecast.编号</td>
+                            <td><input @bind="forecast.收费类别" type="text" style="min-width:188px" @bind:after="@(() => 数印价目更新(forecast))" /></td>
+                            <td><input @bind="forecast.起步价" type="text" style="width:78px" @bind:after="@(() => 数印价目更新(forecast))" /></td>
+                            <td><input @bind="forecast.费率一" type="text" style="width:78px" @bind:after="@(() => 数印价目更新(forecast))" /></td>
+                            <td><input @bind="forecast.费率二" type="text" style="width:78px" @bind:after="@(() => 数印价目更新(forecast))" /></td>
+                            <td><input @bind="forecast.费率三" type="text" style="width:78px" @bind:after="@(() => 数印价目更新(forecast))" /></td>
+                            <td><input @bind="forecast.费率四" type="text" style="width:78px" @bind:after="@(() => 数印价目更新(forecast))" /></td>
+                            <td><input @bind="forecast.说明" type="text" style="min-width:78px" @bind:after="@(() => 数印价目更新(forecast))" /></td>
+                            <td><input @bind="forecast.一档张数" type="text" style="width:58px" @bind:after="@(() => 数印价目更新(forecast))" /></td>
+                            <td><input @bind="forecast.二档张数" type="text" style="width:58px" @bind:after="@(() => 数印价目更新(forecast))" /></td>
+                            <td><input @bind="forecast.三档张数" type="text" style="width:58px" @bind:after="@(() => 数印价目更新(forecast))" /></td>
+                            <td><input @bind="forecast.四档张数" type="text" style="width:58px" @bind:after="@(() => 数印价目更新(forecast))" /></td>
+                            <td style="width:20px"> 
+                                <button class="btn trbtn" @onclick="@(() => 数印价目删除(forecast))" style="color:red">
+                                   <img src="/image/red-trash2.svg" width="18" class="bi" aria-hidden="true" alt="删" />
+                                </button>
+                             </td>
+                        </tr>
+
+
+                    }
+
+                </tbody>
+            </table>
+            <p> <button class="btn btn-primary" @onclick="数印价目插一行">新建</button>  <button class="btn btn-primary" @onclick="AllCTP板材">刷新</button></p>
+        }
+
+    </div>
+</div>
+
+
+@code {
+
+    [CascadingParameter]
+
+    private Task<AuthenticationState>? authenticationState { get; set; }
+    AuthState? AuthState;
+    private bool Isadmin { get; set; } = false; //判断是否为管理员
+
+    IQueryable<CTP板材型号>? itemsCtp;
+    IQueryable<CTP加网线数>? itemsCtpWx;
+    IQueryable<CTP网点类型>? itemsCtpWd;
+    IQueryable<CTP印刷机咬口要求>? itemsCtpYk;
+    IQueryable<纸张类型>? itemsZz;
+    IQueryable<数码印刷费率表>? itemsYjm;
+    public 公用设置? pubSet;
+
+    GridSort<CTP板材型号> CTP型号排序 = GridSort<CTP板材型号>.ByDescending(x => x.CTP板材型号ID);
+    GridSort<CTP板材型号> CTP价格排序 = GridSort<CTP板材型号>.ByDescending(x => x.价格);
+    GridSort<CTP板材型号> CTP说明排序 = GridSort<CTP板材型号>.ByDescending(x => x.说明);
+    GridSort<CTP板材型号> CTP长排序 = GridSort<CTP板材型号>.ByDescending(x => x.长);
+    GridSort<CTP板材型号> CTP宽排序 = GridSort<CTP板材型号>.ByDescending(x => x.宽);
+    GridSort<CTP板材型号> CTP厚排序 = GridSort<CTP板材型号>.ByDescending(x => x.厚);
+
+    GridSort<CTP加网线数> CTP网线排序 = GridSort<CTP加网线数>.ByDescending(x => x.加网线数);
+    GridSort<CTP网点类型> CTP网点排序 = GridSort<CTP网点类型>.ByDescending(x => x.网点类型);
+    GridSort<CTP印刷机咬口要求> CTP咬口排序 = GridSort<CTP印刷机咬口要求>.ByDescending(x => x.印刷机咬口要求);
+    GridSort<纸张类型> 纸张类型排序 = GridSort<纸张类型>.ByDescending(x => x.类型);
+
+    public int numResults()
+    {
+        int Count = itemsCtp.Count();
+        return Count;
+
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = authenticationState?.Result as AuthState;
+        itemsCtp = HongtengDbCon.Db.Queryable<CTP板材型号>().ToArray().AsQueryable();
+        itemsCtpWx = HongtengDbCon.Db.Queryable<CTP加网线数>().ToArray().AsQueryable();
+        itemsCtpWd = HongtengDbCon.Db.Queryable<CTP网点类型>().ToArray().AsQueryable();
+        itemsCtpYk = HongtengDbCon.Db.Queryable<CTP印刷机咬口要求>().ToArray().AsQueryable();
+        itemsZz = HongtengDbCon.Db.Queryable<纸张类型>().ToArray().AsQueryable();
+        itemsYjm = HongtengDbCon.Db.Queryable<数码印刷费率表>().OrderBy(sc => sc.编号).ToArray().AsQueryable();
+        pubSet = HongtengDbCon.Db.Queryable<公用设置>().First(it => it.ID == 1);
+
+        //超级管理员可用
+        Isadmin = AuthState?.IsAdminPro == true;
+
+        await InvokeAsync(StateHasChanged);
+
+    }
+
+
+    private void 更新数据(CTP板材型号 p)
+    {
+        var exists = HongtengDbCon.Db.Queryable<CTP板材型号>()
+                  .Any(x => x.CTP板材型号ID == p.CTP板材型号ID && x.编号 != p.编号);
+    if (exists)
+    {
+        // Notify user about the duplicate
+        //throw new Exception("Duplicate CTP板材型号ID detected.");
+         JS.InvokeVoidAsync("alert", "已存在相同的CTP板材型号，请修改！");
+         return;
+
+    }
+    HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+}
+    private void ctp网线更新(CTP加网线数 p)
+    {
+        if (p.加网线数==null)
+        {
+            p.加网线数 = 0;
+        }
+        HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+    }
+    private void ctp网点更新(CTP网点类型 p)
+    {
+        HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+    }
+    private void ctp咬口更新(CTP印刷机咬口要求 p)
+    {
+        HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+    }
+    private void 纸张类型更新(纸张类型 p)
+    {
+        var exists = HongtengDbCon.Db.Queryable<纸张类型>()
+                  .Any(x => x.类型 == p.类型 && x.编号 != p.编号);
+        if (exists)
+        {
+            JS.InvokeVoidAsync("alert", "已存在相同的纸张类型，请修改！");
+            return;
+        }
+        HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+    }
+    private void 数印价目更新(数码印刷费率表 p)
+    {
+        HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+    }
+    private void 保存公用设置(公用设置 p)
+    {
+        HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+
+    }
+
+    private void ctp新插一行()
+    {
+        Random random = new Random();  //随机数
+        int randomNumber = random.Next(65, 91);
+        char aa = (char)randomNumber;
+        string dd = random.Next(380, 1280) +"x"+ random.Next(200, 880) + "mm 板材名" + aa.ToString(); //随机字母+数字
+        var ddd = HongtengDbCon.Db.Insertable(new CTP板材型号() { CTP板材型号ID = dd }).ExecuteReturnEntity();
+        var dda = itemsCtp.ToList();
+        dda.Add(ddd);
+        itemsCtp = dda.ToArray().AsQueryable();
+    }
+
+    private void ctp网线插一行()
+    {
+        Random random = new Random();  //随机数
+        var ddd = HongtengDbCon.Db.Insertable(new CTP加网线数() { 加网线数 = random.Next(500, 999) }).ExecuteReturnEntity();
+        var dda = itemsCtpWx.ToList();
+        dda.Add(ddd);
+        itemsCtpWx = dda.ToArray().AsQueryable();
+    }
+
+    private void ctp网点插一行()
+    {
+        var ddd = HongtengDbCon.Db.Insertable(new CTP网点类型()).ExecuteReturnEntity();
+        var dda = itemsCtpWd.ToList();
+        dda.Add(ddd);
+        itemsCtpWd = dda.ToArray().AsQueryable();
+    }
+
+    private void ctp咬口插一行()
+    {
+        var ddd = HongtengDbCon.Db.Insertable(new CTP印刷机咬口要求()).ExecuteReturnEntity();
+        var dda = itemsCtpYk.ToList();
+        dda.Add(ddd);
+        itemsCtpYk = dda.ToArray().AsQueryable();
+    }
+
+    private void 纸张类型插一行()
+    {
+        Random random = new Random();  //随机数
+        var ddd = HongtengDbCon.Db.Insertable(new 纸张类型() { 类型 = random.Next(100, 999).ToString() + "g纸张类型" }).ExecuteReturnEntity();
+        var dda = itemsZz.ToList();
+        dda.Add(ddd);
+        itemsZz = dda.ToArray().AsQueryable();
+    }
+    private void 数印价目插一行()
+    {
+        Random random = new Random();  //随机数
+        var ddd = HongtengDbCon.Db.Insertable(new 数码印刷费率表() { 收费类别 = random.Next(100, 999).ToString() + "g纸张类型" ,起步价=10,费率一=2}).ExecuteReturnEntity();
+        var dda = itemsYjm.ToList();
+        dda.Add(ddd);
+        itemsYjm = dda.ToArray().AsQueryable();
+    }
+
+
+    private void AllCTP板材()
+    {
+        itemsCtp = HongtengDbCon.Db.Queryable<CTP板材型号>().ToArray().AsQueryable();
+        itemsCtpWx = HongtengDbCon.Db.Queryable<CTP加网线数>().ToArray().AsQueryable();
+        itemsCtpWd = HongtengDbCon.Db.Queryable<CTP网点类型>().ToArray().AsQueryable();
+        itemsCtpYk = HongtengDbCon.Db.Queryable<CTP印刷机咬口要求>().ToArray().AsQueryable();
+        itemsZz = HongtengDbCon.Db.Queryable<纸张类型>().ToArray().AsQueryable();
+        itemsYjm = HongtengDbCon.Db.Queryable<数码印刷费率表>().ToArray().AsQueryable();
+    }
+
+    //数码印刷费率表排序
+    int bh = 0;
+    string bhimg = "/image/arrowUp.svg";
+    private void 编号排序()
+    {
+        if (bh == 0)
+        {
+            itemsYjm = itemsYjm.OrderBy(p => p.编号).AsQueryable(); //顺序排序
+            bh = 1;
+            bhimg = "/image/arrowUp.svg";
+        }
+        else
+        {
+            itemsYjm = itemsYjm.OrderByDescending(p => p.编号).AsQueryable(); //倒叙排序
+            bh = 0;
+            bhimg = "/image/arrowDown.svg";
+        }
+    }
+    int lx = 0;
+    string lximg = "/image/arrowUp.svg";
+    private void 类别排序()
+    {
+        if (lx == 0)
+        {
+            itemsYjm = itemsYjm.OrderBy(p => p.收费类别).AsQueryable(); //顺序排序
+            lx = 1;
+            lximg = "/image/arrowUp.svg";
+        }
+        else
+        {
+            itemsYjm = itemsYjm.OrderByDescending(p => p.收费类别).AsQueryable(); //倒叙排序
+            lx = 0;
+            lximg = "/image/arrowDown.svg";
+        }
+    }
+
+    private void 数印价目删除(数码印刷费率表 p)
+    {
+        HongtengDbCon.Db.Deleteable<数码印刷费率表>(new 数码印刷费率表() { 编号 = p.编号 }).ExecuteCommand();
+        itemsYjm = HongtengDbCon.Db.Queryable<数码印刷费率表>().ToArray().AsQueryable();
+    }
+
+    private void 删除CTP板材(CTP板材型号 p)
+    {
+        if (p.价格==null)
+        {
+            HongtengDbCon.Db.Deleteable<CTP板材型号>(new CTP板材型号() { 编号 = p.编号 }).ExecuteCommand();
+            itemsCtp = HongtengDbCon.Db.Queryable<CTP板材型号>().ToArray().AsQueryable();
+        }
+        
+    }
+
+    private void 删除加网线数(CTP加网线数 p)
+    {
+        HongtengDbCon.Db.Deleteable<CTP加网线数>(new CTP加网线数() { 编号 = p.编号 }).ExecuteCommand();
+        itemsCtpWx = HongtengDbCon.Db.Queryable<CTP加网线数>().ToArray().AsQueryable();
+    } 
+
+    private void 删除网点类型(CTP网点类型 p)
+    {
+        HongtengDbCon.Db.Deleteable<CTP网点类型>(new CTP网点类型() { 编号 = p.编号 }).ExecuteCommand();
+        itemsCtpWd = HongtengDbCon.Db.Queryable<CTP网点类型>().ToArray().AsQueryable();
+    } 
+
+    private void 删除咬口要求(CTP印刷机咬口要求 p)
+    {
+        HongtengDbCon.Db.Deleteable<CTP印刷机咬口要求>(new CTP印刷机咬口要求() { 编号 = p.编号 }).ExecuteCommand();
+        itemsCtpYk = HongtengDbCon.Db.Queryable<CTP印刷机咬口要求>().ToArray().AsQueryable();
+    }   
+
+    private void 删除纸张类型(纸张类型 p)
+    {
+        HongtengDbCon.Db.Deleteable<纸张类型>(new 纸张类型() { 编号 = p.编号 }).ExecuteCommand();
+        itemsZz = HongtengDbCon.Db.Queryable<纸张类型>().ToArray().AsQueryable();   
+    }
+
+
+
+
+
+
+
+
+
+
+
+}

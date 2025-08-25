@@ -1,0 +1,250 @@
+﻿@page "/Staff"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using HtERP.Data
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using ClosedXML.Excel
+
+@inject IJSRuntime JS
+@attribute [Authorize]
+
+<PageTitle>Staff</PageTitle>
+
+<div>
+    <strong><font size="5" style="color:#016f5e">员工信息</font></strong>
+    <em>（共: <strong>@numResults() </strong>条内容）</em>
+</div>
+
+<div>
+
+    <input type="search" autofocus @bind="nameFilter" placeholder="姓名..." style="width:120px" />
+    <input type="search" autofocus @bind="nameFilter1" placeholder="电话..." style="width:120px" />
+    <button class="btn btn-primary" @onclick="查询">查询</button>
+    <button class="btn btn-primary" @onclick="清空搜索项">清空搜索项</button>
+    <button class="btn btn-primary" @onclick="AllStaff">全部</button>
+</div>
+
+
+@if (forecasts == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div>
+        <QuickGrid Items="@items" Theme="corporate" class="table">
+
+            <PropertyColumn Property="@(c => c.员工ID)"  Sortable="true" Align="Align.Right" Title="ID" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
+
+            <TemplateColumn Title="姓名" SortBy="@姓名排序" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+
+                <input type="text" id="query" @bind="@(context.姓名)" style="min-width:68px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+
+            </TemplateColumn>
+
+            <TemplateColumn Title="手机" SortBy="@手机排序" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                <InputText id="textpm" type="text" @bind-Value=@(context.手机) style="min-width:88px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+            </TemplateColumn>
+
+            <TemplateColumn Title="QQ号" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                <input id="textzs" type="text" @bind="@(context.QQ号)" style="text-align: right; min-width:66px; width:128px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+            </TemplateColumn>
+
+            <TemplateColumn Title="电子邮件" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                <input id="query" type="text" @bind="@(context.电子邮件)" style="min-width:128px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+
+            </TemplateColumn>
+
+            <TemplateColumn Title="地址" SortBy="@地址排序" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                <input id="textjg" type="text" @bind="@(context.地址)" style="text-align: right; width:138px" class="priceinput" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+            </TemplateColumn>
+
+            <TemplateColumn Title="部门" SortBy="@部门排序" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                <input id="textyq" type="text" @bind="@(context.部门)" style="min-width:88px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+            </TemplateColumn>
+
+            <TemplateColumn Title="头衔" SortBy="@头衔排序" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                <input id="textsh" type="text" @bind="@(context.头衔)" style="max-width:118px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+            </TemplateColumn>
+
+            <TemplateColumn Title="身份证号" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                <input id="zzy" type="text" @bind="@(context.身份证号)" list="ygoptions" style="width:78px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+
+            </TemplateColumn>
+
+            <TemplateColumn Title="雇佣日期" SortBy="@日期排序" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                <input id="date1" type="date" @bind="@(context.雇佣日期)" style="width:118px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+            </TemplateColumn>
+
+            <TemplateColumn Title="已离职" SortBy="@离职排序" Align="Align.Center">
+                <input id="Checkbox1" type="checkbox" @bind=@(context.是否已离职) onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+            </TemplateColumn>
+            <TemplateColumn Title="管理员"  Align="Align.Center">
+                <input id="Checkbox2" type="checkbox" @bind=@(context.是否为管理员) onblur="@(() => 更新数据(context))" disabled=@IsSupDisabled />
+            </TemplateColumn>
+            <TemplateColumn Title="重置密码" Align="Align.Center" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true">
+                <button @onclick="@(() => ShowDialogEvent(context))" disabled=@IsDisabled>重置</button>
+            </TemplateColumn>
+        </QuickGrid>
+    </div>
+    <p>
+        @if (!IsDisabled)
+        {
+            <button class="btn btn-primary" @onclick="新插一行">新建</button>
+        }
+        共: <strong>@numResults()</strong>条
+    </p>
+
+}
+
+@if (ShowDialog)
+
+{
+    <div class="custom-dialog" @onclick:stopPropagation>
+        <div class="dialog-content">
+            <h3> 是否确定把密码重置为“666888”？</h3>
+            <p><button class="dialog-button" @onclick="重置密码">确定重置</button> <button class="dialog-button" @onclick="HideDialogEvent">取消</button></p>
+        </div>
+    </div>
+}
+
+@code {
+
+    private bool IsDisabled { get; set; } = true; //控制input标签是否可用
+    private bool IsSupDisabled { get; set; } = true; //控制input非超级管理员不可用
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    AuthState? AuthState;
+
+    private 员工[]? forecasts;
+    IQueryable<员工>? items;
+
+    string nameFilter = string.Empty;
+    string nameFilter1 = string.Empty;
+    string nameFilter2 = string.Empty;
+
+    GridSort<员工> rankSort = GridSort<员工>
+        .ByDescending(x => x.员工ID);
+
+    GridSort<员工> 姓名排序 = GridSort<员工>.ByDescending(x => x.姓名);
+    GridSort<员工> 手机排序 = GridSort<员工>.ByDescending(x => x.手机);
+    GridSort<员工> 地址排序 = GridSort<员工>.ByDescending(x => x.地址);
+    GridSort<员工> 部门排序 = GridSort<员工>.ByDescending(x => x.部门);
+    GridSort<员工> 头衔排序 = GridSort<员工>.ByDescending(x => x.头衔);
+    GridSort<员工> 日期排序 = GridSort<员工>.ByDescending(x => x.雇佣日期);
+    GridSort<员工> 管理排序 = GridSort<员工>.ByDescending(x => x.是否为管理员);
+    GridSort<员工> 超管排序 = GridSort<员工>.ByDescending(x => x.超级管理员);
+    GridSort<员工> 离职排序 = GridSort<员工>.ByDescending(x => x.是否已离职);
+
+    public int numResults()
+    {
+        int Count = items.Count();
+        return Count;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = authenticationState?.Result as AuthState;
+
+        //管理员可用
+        if (AuthState.IsAdmin == null | AuthState.IsAdmin ==false)
+        {
+            IsDisabled = true;
+        } 
+        else
+        {
+            IsDisabled = false;
+        }
+
+        //超级管理员可用
+        if (AuthState.IsAdminPro == null | AuthState.IsAdminPro == false)
+        {
+            IsSupDisabled = true;
+        }
+        else
+        {
+            IsSupDisabled = false;
+        }
+
+        forecasts = HongtengDbCon.Db.Queryable<员工>().Where(it => it.是否已离职 != true).ToArray();
+        items = forecasts.AsQueryable();
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    //弹出窗口修改密码
+    public bool ShowDialog { get; set; }
+    public 员工? pp;
+    private void HideDialogEvent()
+    {
+        ShowDialog = false;
+    }
+    private void ShowDialogEvent(员工 p)
+    {
+        pp = p;
+        ShowDialog = true;
+    }
+    private void 重置密码()
+    {
+        pp.密码 = "75e266f182b4fa3625d4a4f4f779af54";
+        HongtengDbCon.Db.Updateable(pp).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+        ShowDialog = false;
+    }
+
+    private void 更新数据(员工 p)
+    {
+        HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+    }
+
+    private void 新插一行()
+    {
+
+        Random random = new Random();  //随机数
+        int randomNumber = random.Next(65, 91);
+        char aa = (char)randomNumber;
+        randomNumber = random.Next(65, 91);
+        char bb = (char)randomNumber;
+        randomNumber = random.Next(65, 91);
+        char cc = (char)randomNumber;
+        string dd = aa.ToString() + bb + cc+"姓名"; //随机字母
+        var ddd = HongtengDbCon.Db.Insertable(new 员工() { 姓名 = dd, 手机 = random.Next().ToString(), 密码 = "75e266f182b4fa3625d4a4f4f779af54", 雇佣日期 = DateTime.Now, 是否已离职 = false }).ExecuteReturnEntity();
+
+        var dda = forecasts.ToList();
+        dda.Add(ddd);
+        forecasts = dda.ToArray();
+        items = forecasts.AsQueryable();
+
+    }
+
+    private void AllStaff()
+    {
+
+        forecasts = HongtengDbCon.Db.Queryable<员工>().ToArray();
+        items = forecasts.AsQueryable();
+    }
+
+    private void 查询()
+    {
+
+        forecasts = HongtengDbCon.Db.Queryable<员工>()
+                .WhereIF(!string.IsNullOrEmpty(nameFilter), it => it.姓名.Contains(nameFilter))
+                .WhereIF(!string.IsNullOrEmpty(nameFilter1), it => it.手机.Contains(nameFilter1)).ToArray();
+        items = forecasts.AsQueryable();
+    }
+
+    private void 清空搜索项()
+    {
+
+        nameFilter = string.Empty;
+        nameFilter1 = string.Empty;
+        nameFilter2 = string.Empty;
+
+    }
+
+   
+
+
+}

@@ -1,0 +1,262 @@
+﻿::deep .quickgrid[theme=corporate] {
+    font-family: 'Microsoft YaHei', SimHei, Sans Serif;
+    color: #0e3973;
+}
+
+    ::deep .quickgrid[theme=corporate] .col-title {
+        gap: 0.4rem; /* Separate the sort indicator from title text */
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    ::deep .quickgrid[theme=corporate] .sort-indicator {
+        color: blue;
+    }
+
+    ::deep .quickgrid[theme=corporate] button.col-title:hover, ::deep .quickgrid[theme=corporate] .col-options-button:hover {
+        background-color: #62adff;
+    }
+
+    ::deep .quickgrid[theme=corporate] button.col-title:active, ::deep .quickgrid[theme=corporate] .col-options-button:active {
+        background-color: #d9f2a9;
+    }
+
+    ::deep .quickgrid[theme=corporate].table > :not(caption) > * > * {
+        padding: 0rem 0rem;
+    }
+
+/* Sticky header while scrolling */
+::deep thead {
+    position: sticky;
+    top: 0;
+    background-color: #d8d8d8;
+    outline: 1px solid gray;
+    z-index: 1;
+}
+
+/* 行间隔深浅条纹效果 */
+::deep tbody tr {
+    background-color: rgb(120, 138, 172, 0.06);
+}
+
+    ::deep tbody tr:nth-child(even) {
+        background: rgb(248, 255, 250, 0.50);
+    }
+
+/* 表格 样式 */
+::deep tbody td {
+    border-right-color: rgb(20, 38, 72, 0.1);
+    border-right-width: 1px;
+}
+
+/* 输入框 样式 */
+::deep tbody input {
+    border: 0px;
+    background-color: rgb(255, 255, 255, 0.5);
+    width: 100%;
+}
+
+
+/* 输入框 number 样式 */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+
+.card {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+    border: none;
+}
+
+.card-header {
+    background-color: var(--secondary-color);
+    color: white;
+    font-weight: 600;
+    padding: 12px 20px;
+    border-radius: 8px 8px 0 0 !important;
+}
+
+.nav-tabs {
+    border-bottom: 2px solid var(--primary-color);
+}
+
+    .nav-tabs .nav-link {
+        font-weight: 500;
+        border: none;
+        color: var(--secondary-color);
+        padding: 12px 20px;
+        border-radius: 4px 4px 0 0;
+        transition: all 0.3s;
+    }
+
+        .nav-tabs .nav-link:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+
+        .nav-tabs .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            border: none;
+        }
+
+.tab-content {
+    padding: 20px;
+    background-color: white;
+    border-radius: 0 0 8px 8px;
+    border: 1px solid var(--border-color);
+    border-top: none;
+}
+
+.form-section {
+    background-color: var(--light-gray);
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.form-label {
+    font-weight: 500;
+    margin-bottom: 5px;
+    color: var(--secondary-color);
+}
+
+.form-control, .form-select {
+    border-radius: 4px;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border: none;
+    padding: 8px 16px;
+    font-weight: 500;
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+    .btn-primary:hover {
+        background-color: #2980b9;
+        transform: translateY(-2px);
+    }
+
+.btn-outline {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--secondary-color);
+}
+
+    .btn-outline:hover {
+        background-color: var(--light-gray);
+    }
+
+.btn-danger {
+    background-color: var(--accent-color);
+}
+
+.table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+}
+
+    .table thead th {
+        background-color: var(--medium-gray);
+        color: white;
+        font-weight: 500;
+        padding: 3px 5px;
+    }
+
+    .table tbody td {
+        padding: 3px 5px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(52, 152, 219, 0.05);
+    }
+
+.table-responsive {
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.action-btn {
+    padding: 5px 10px;
+    margin: 0 2px;
+    font-size: 0.85rem;
+}
+
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-active {
+    background-color: rgba(46, 204, 113, 0.2);
+    color: #27ae60;
+}
+
+.status-inactive {
+    background-color: rgba(231, 76, 60, 0.2);
+    color: #c0392b;
+}
+
+.search-container {
+    background-color: white;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.summary-card {
+    text-align: center;
+    padding: 15px;
+    background: linear-gradient(135deg, #3498db, #2c3e50);
+    color: white;
+    border-radius: 8px;
+}
+
+    .summary-card .value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 10px 0;
+    }
+
+    .summary-card .label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+@media (max-width: 768px) {
+    .nav-tabs .nav-link {
+        padding: 10px 15px;
+        font-size: 0.9rem;
+    }
+
+    .form-row > div {
+        margin-bottom: 10px;
+    }
+
+    .btn {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}
+
+.colorwhite {
+    color: white;
+}

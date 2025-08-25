@@ -1,0 +1,2457 @@
+﻿@page "/HtCharge"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using HtERP.Data
+@using HtERP.Services
+@using ClosedXML.Excel
+@using System.Linq.Expressions
+@using System.Reflection
+@using System.Security.Cryptography
+@using System.Text
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using SqlSugar
+@inject SettlementService BackgroundService
+@inject ILogger<SettlementService> Logger
+@inject IJSRuntime JS
+@attribute [Authorize]
+<script src="bootstrap/bootstrap.min.js"></script>
+
+<PageTitle>HtCharge</PageTitle>
+
+<div class="container-fluid">
+        <div class="row mb-4">
+            <div class="col">
+            <h3><img src="/image/svg-black/wallet.svg" width="38" class="bi" aria-hidden="true" />充值管理系统</h3>
+            </div>
+        </div>
+              
+        <!-- 标签页导航 -->
+        <ul class="nav nav-tabs" id="rechargeTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="customer-tab" data-bs-toggle="tab" data-bs-target="#customer" type="button" role="tab" aria-controls="customer" aria-selected="true">
+                    客户充值
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="transactions-tab" data-bs-toggle="tab" data-bs-target="#transactions" type="button" role="tab" aria-controls="transactions" aria-selected="false">
+                    交易流水
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="balance-tab" data-bs-toggle="tab" data-bs-target="#balance" type="button" role="tab" aria-controls="balance" aria-selected="false">
+                    客户余额
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="discount-tab" data-bs-toggle="tab" data-bs-target="#discount" type="button" role="tab" aria-controls="discount" aria-selected="false">
+                    折扣设置
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="auto-tab" data-bs-toggle="tab" data-bs-target="#auto" type="button" role="tab" aria-controls="auto" aria-selected="false">
+                    自动扣款设置
+                </button>
+            </li>
+        </ul>
+        
+        <!-- 标签页内容 -->
+        <div class="tab-content" id="rechargeTabContent">
+            <!-- 客户充值标签页 -->
+            <div class="tab-pane fade show active" id="customer" role="tabpanel" aria-labelledby="customer-tab">
+                <div class="form-section">
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">选择客户</label>
+                          
+                                <input type="text" class="form-control" list="customerList" @bind="khid" placeholder="输入客户名称或ID" @bind:after="@(() => 更新客户信息(khid))">
+
+                          
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card bg-white">
+                                <div class="card-body p-3">
+                                    <div class="row">
+                                        <div class="col-4">
+                                            <div class="mb-2"><strong>账户余额:</strong> @khye.ToString("C") </div>
+                                            <div><strong>未结金额:</strong> @khwj.ToString("C")</div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="mb-2"><strong>联系人:</strong> @khlxr</div>
+                                            <div><strong>手机号:</strong> @khdh</div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="mb-2"><strong>公司:</strong> @khgs</div>
+                                            <div><strong>类型:</strong> @khlx</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-lg-4 mb-3">
+                        <div class="card h-100">
+                                <div class="card-header bg-primary py-2">充值信息</div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">充值金额 (¥)</label>
+                                    <input type="number" class="form-control" @bind="czje" @bind:after="@更新充值金额">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">赠送金额 (¥)</label>
+                                    <input type="number" class="form-control" @bind="zsje">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">付款方式</label>
+                                    <input type="text" class="form-control" list="fkoptions" @bind="fkfs"  placeholder="选择付款方式">
+          
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-4 mb-3">
+                        <div class="card h-100">
+                                <div class="card-header bg-primary py-2">其他设置</div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">有效期</label>
+                                    <input type="date" class="form-control" @bind="yxq">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">扣款优先级(数字小先扣)</label>
+                                    <input type="number" class="form-control" @bind="kkyxj">
+                        
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">充值说明</label>
+                                    <input type="text" class="form-control" @bind="czsm">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-4 mb-3">
+                        <div class="card h-100">
+                                <div class="card-header bg-primary py-2">折扣方案</div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                    <div class="d-flex justify-content-between mt-3">
+                                        <button class="btn btn-primary" type="button" @onclick="载入签约折扣">载入签约折扣率</button>
+                                            <div>
+                                            保持折扣：<input id="Checkbox1" type="checkbox" style="width:28px" @bind="bczk" />
+                                            </div>
+                                        </div>
+
+                                    <input type="text" class="form-control" list="discountList" @bind="zkfa" placeholder="选择折扣方案" @bind:after="@(() => 更新折扣方案(zkfa))">
+                                 
+                                    </div>
+
+                                <table>
+   
+                                    <tr>
+                                        <td>
+                                            <div class="col-12">
+                                                CTP<input type="number" step="0.05" min="0.5" max="1" class="form-control" @bind="zk_ctp">
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="col-12">
+                                                菲林<input type="number" step="0.05" min="0.5" max="1" class="form-control" @bind="zk_fl">
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="col-12">
+                                                数码<input type="number" step="0.05" min="0.5" max="1" class="form-control" @bind="zk_sm">
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="col-12">
+                                                后加工<input type="number" step="0.05" min="0.5" max="1" class="form-control" @bind="zk_hd">
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="col-12">
+                                                纯设计<input type="number" step="0.05" min="0.5" max="1" class="form-control" @bind="zk_sj">
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="col-12">
+                                                其他<input type="number" step="0.05" min="0.5" max="1" class="form-control" @bind="zk_qt">
+                                            </div>
+                                        </td>
+        
+                                    </tr>
+                                </table>
+         
+                                    
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                    <button class="btn btn-outline" @onclick="ClearReset">
+                        <img src="/image/svg-black/arrow-couterclockwise.svg" width="18" class="bi" aria-hidden="true" style="opacity: 0.6" />
+                        清空重填</button>
+                    <button class="btn btn-primary" @onclick="ShowSettleEvent">
+                        <img src="/image/svg-white/White_check2.svg" width="18" class="bi" aria-hidden="true" />
+                        确认充值</button>
+                    </div>
+
+                </div>
+            <hr />
+            <div class="batch-actions">
+                <h5 class="mb-3"><i class="fas fa-history me-2"></i>充值账户</h5>
+                <button class="btn btn-primary" @onclick="刷新充值记录">
+                    <img src="/image/svg-white/White_arrow-couterclockwise.svg" width="18" class="bi" aria-hidden="true" />
+                    刷新
+                </button>
+            </div>
+            
+                
+                <div class="table-responsive">
+
+
+                @if (itemsCzzh == null)
+                {
+                    <p><em>Loading...</em></p>
+                }
+                else
+                {
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>流水号</th>
+                                <th>客户</th>
+                                <th>充值日期</th>
+                                <th>充值金额</th>
+                                <th>剩余金额</th>
+                                <th>有效期</th>
+                                <th>优先级</th>
+                                <th>操作员</th>
+                                <th>说明</th>
+                            </tr>
+                        </thead>
+                        @foreach (var forecast in itemsCzzh)
+                        {
+                            <tbody>
+                                <tr>
+                                    <td>@forecast.ID</td>
+                                    <td>@forecast.客户ID</td>
+                                    <td>@forecast.充值时间</td>
+                                    <td class="fw-bold">@forecast.充值金额</td>
+                                    <td class="fw-bold text-success">@forecast.剩余金额</td>
+                                    <td>@forecast.到期时间</td>
+                                    <td>
+                                        
+                                        @if (IsadminPro)
+                                        {
+                                            <input type="number" step="1" min="1" style="width:50px" @bind="forecast.使用优先级" @bind:after="@(()=>更新充值优先级(forecast))">
+                                        }
+                                        else
+                                        {
+                                            @forecast.使用优先级
+                                        }
+                                    </td>
+                                    <td>@forecast.操作员</td>
+                                    <td>@forecast.说明</td>
+                                </tr>
+                                
+                            </tbody>
+                        }
+                        
+                    </table>
+                }
+                
+                </div>
+            </div>
+            
+            <!-- 交易流水标签页 -->
+            <div class="tab-pane fade" id="transactions" role="tabpanel" aria-labelledby="transactions-tab">
+                <div class="search-container">
+                    <div class="row">
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">日期范围</label>
+                            <input type="date" class="form-control" @bind="datestart">
+                        </div>
+
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">至</label>
+                            <input type="date" class="form-control" @bind="dateend">
+                        </div>
+
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">客户名称</label>
+                        
+                        <input type="text" class="form-control" list="customerList" placeholder="输入客户名称" @bind="khid" @bind:after="@(() => 更新客户信息(khid))">
+                        </div>
+
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">操作员工</label>
+
+                        <input type="text" class="form-control" list="yuangongList" placeholder="输入客员工名" @bind="czyg">
+                        </div>
+
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">交易类型</label>
+                        <input type="text" class="form-control" list="jylxList" placeholder="交易类型..." @bind="jylx">
+
+                        </div>
+
+                    </div>
+                    <div class="d-flex justify-content-start mt-3">
+                    <button class="btn btn-outline me-2" @onclick="重置交易搜索"> 重置</button>
+                    <button class="btn btn-primary me-2" @onclick="交易流水搜索"> 搜索</button>
+                    <button class="btn btn-outline me-2" @onclick="下载流水Excel"> 下载Excel</button>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                    <thead>
+                        <tr class="ttr">
+                            <th >
+                                <button class="btn trbtn btn-white" @onclick="@(() => SortData("流水号"))">
+                                    流水号<img src="@GetSortIndicator("流水号")" width="18" alt="↓" />
+                                </button>
+
+                            </th>
+                            <th >
+                                <button class="btn trbtn btn-white" @onclick="@(() => SortData("日期"))">
+                                    日期<img src="@GetSortIndicator("日期")" width="18" alt="↓" />
+                                </button>
+
+                            </th>
+                            <th >
+                                <button class="btn trbtn btn-white" @onclick="@(() => SortData("客户"))">
+                                    客户<img src="@GetSortIndicator("客户")" width="18" alt="↓" />
+                                </button>
+
+                            </th>
+                            <th >
+                                <button class="btn trbtn btn-white" @onclick="@(() => SortData("交易类型"))">
+                                    交易类型<img src="@GetSortIndicator("交易类型")" width="18" alt="↓" />
+                                </button>
+
+                            </th>
+                            <th >
+                                <button class="btn trbtn btn-white" @onclick="@(() => SortData("工单号"))">
+                                    工单号<img src="@GetSortIndicator("工单号")" width="18" alt="↓" />
+                                </button>
+
+                            </th>
+                            <th>
+                                <button class="btn trbtn btn-white" @onclick="@(() => SortData("工单日期"))">
+                                    工单日期<img src="@GetSortIndicator("工单日期")" width="18" alt="↓" />
+                                </button>
+
+                            </th>
+                            <th >
+                                <button class="btn trbtn btn-white" @onclick="@(() => SortData("用途名称"))">
+                                    用途名称<img src="@GetSortIndicator("用途名称")" width="18" alt="↓" />
+                                </button>
+
+                            </th>
+                            <th >
+                                <button class="btn trbtn btn-white" @onclick="@(() => SortData("摘要"))">
+                                    摘要<img src="@GetSortIndicator("摘要")" width="18" alt="↓" />
+                                </button>
+
+                            </th>
+                            <th >
+                                <button class="btn trbtn btn-white" @onclick="@(() => SortData("原价"))">
+                                    原价<img src="@GetSortIndicator("原价")" width="18" alt="↓" />
+                                </button>
+
+                            </th>
+                            <th>
+                                <button class="btn trbtn btn-white" @onclick="@(() => SortData("折扣"))">
+                                    折扣<img src="@GetSortIndicator("折扣")" width="18" alt="↓" />
+                                </button>
+
+                            </th>
+                            <th >
+                                <button class="btn trbtn btn-white" @onclick="@(() => SortData("发生金额"))">
+                                    发生金额<img src="@GetSortIndicator("发生金额")" width="18" alt="↓" />
+                                </button>
+
+                            </th>
+                            <th >
+                                <button class="btn trbtn btn-white" @onclick="@(() => SortData("账户余额"))">
+                                    账户余额<img src="@GetSortIndicator("账户余额")" width="18" alt="↓" />
+                                </button>
+
+                            </th>
+                            <th >
+                                <button class="btn trbtn btn-white" @onclick="@(() => SortData("网点"))">
+                                    网点<img src="@GetSortIndicator("网点")" width="18" alt="↓" />
+                                </button>
+
+                            </th>
+                            <th >
+                                <button class="btn trbtn btn-white" @onclick="@(() => SortData("操作员"))">
+                                    操作员<img src="@GetSortIndicator("操作员")" width="18" alt="↓" />
+                                </button>
+
+                            </th>
+                            <th >
+                                <button class="btn trbtn btn-white" @onclick="@(() => SortData("收付款方式"))">
+                                    结算方式<img src="@GetSortIndicator("收付款方式")" width="18" alt="↓" />
+                                </button>
+
+                            </th>
+
+                            <th >
+                                <button class="btn trbtn btn-white" @onclick="@(() => SortData("扣款账号"))">
+                                    账号<img src="@GetSortIndicator("扣款账号")" width="18" alt="↓" />
+                                </button>
+
+                            </th>
+                            <th >
+                                <button class="btn trbtn btn-white" @onclick="@(() => SortData("备注"))">
+                                    备注<img src="@GetSortIndicator("备注")" width="18" alt="↓" />
+                                </button>
+
+                            </th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        @foreach (var forecast in jylsPageItems)
+                        {
+                            <tr class="check-completed-row">
+                                <td>@forecast.流水号</td>
+                                <td>@forecast.日期</td>
+                                <td>@forecast.客户</td>
+                                <td>@forecast.交易类型</td>
+                                <td>@forecast.工单号</td>
+                                <td>@forecast.工单日期</td>
+                                <td>@forecast.用途名称</td>
+                                <td>@forecast.摘要</td>
+                                <td>@forecast.原价</td>
+                                <td>@forecast.折扣</td>
+                                <td>@forecast.发生金额</td>
+                                <td>@forecast.账户余额</td>
+                                <td>@forecast.网点</td>
+                                <td>@forecast.操作员</td>
+                                <td>@forecast.收付款方式</td>
+                                <td>@forecast.扣款账号</td>
+                                <td>@forecast.备注</td>
+                                <td>
+                                    <button class="btn trbtn btn-white">
+                                        <img src="/image/svg-black/pan_edit.svg" width="18" class="bi" aria-hidden="true" alt="编辑" />
+                                    </button>
+                                </td>
+
+ 
+                            </tr>
+
+                        }
+
+                    </tbody>
+                    </table>
+                    <!-- 分页控件 -->
+                    <div class="pagination">
+                        
+                        <span>共: <strong>@numResults()</strong>条</span>
+                   
+                        <button class="btn btn-primary" @onclick="FirstPage" disabled="@(currentPage == 1)">首页</button>
+                        <button class="btn btn-primary" @onclick="PreviousPage" disabled="@(currentPage == 1)">上一页</button>
+                   
+                        <span>第 @currentPage 页 / 共 @totalPages 页</span>
+                        <span>每页: </span>
+                        <select @bind="pageSize" @bind:after="UpdatePagination">
+                            <option value="15">15</option>
+                            <option value="30">30</option>
+                            <option value="80">80</option>
+                            <option value="200">200</option>
+                            <option value="500">500</option>
+                        </select>
+                   
+                        <button class="btn btn-primary" @onclick="NextPage" disabled="@(currentPage == totalPages)">下一页</button>
+                        <button class="btn btn-primary" @onclick="LastPage" disabled="@(currentPage == totalPages)">末页</button>
+                   
+                        <input type="number" min="1" max="@totalPages" @bind="gotoPage" style="width:60px" />
+                        <button class="btn btn-primary" @onclick="GoToPage">跳转</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 客户余额标签页 -->
+            <div class="tab-pane fade" id="balance" role="tabpanel" aria-labelledby="balance-tab">
+            <div>
+                客户余额查询, 每页显示条数:
+                <select @bind="@pagination.ItemsPerPage">
+                    <option>50</option>
+                    <option>100</option>
+                    <option>500</option>
+                    <option>1000</option>
+                    <option>2000</option>
+                </select>
+                <button class="btn btn-primary" @onclick="查询账户余额">刷新</button>
+            </div>
+                <div>
+                    <QuickGrid Items="@vip汇总" Theme="corporate" class="table" Pagination="@pagination" >
+                      
+                        <PropertyColumn Property="@(c => c.自动编号)" Sortable="true" Align="Align.Right" Title="序号" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
+                        <PropertyColumn Property="@(c => c.客户ID)" Sortable="true" Align="Align.Right" Title="客户名" />
+                        <PropertyColumn Property="@(c => c.联系人)" Sortable="true" Align="Align.Right" Title="联系人" />
+                        <PropertyColumn Property="@(c => c.手机)" Sortable="true" Align="Align.Right" Title="手机号" />
+                        <PropertyColumn Property="@(c => c.账户余额)" Format="0.00" Sortable="true" Align="Align.End" Title="账户余额" />
+                    <PropertyColumn Property="@(c => c.未结金额)" Format="0.00" Sortable="true" Align="Align.End" Title="未结金额" />
+                    <PropertyColumn Property="@(c => c.账户余额 - c.未结金额)" Format="0.00" Sortable="true" Align="Align.End" Title="可用余额" />
+
+                    </QuickGrid>
+                    <Paginator State="@pagination" />
+                </div>
+            </div>
+
+            <!-- 折扣设置标签页 -->
+            <div class="tab-pane fade" id="discount" role="tabpanel" aria-labelledby="discount-tab">
+                <div>需要管理员进行操作</div>
+                @if (Isadmin)
+                {
+                    <div>
+                    <table class="table">
+                        <thead>
+                            <tr class="ttr">
+                                <th style="width:58px">编号</th>
+                                <th style="width:168px">折扣方案名</th>
+                                <th style="width:68px">CTP折扣</th>
+                                <th style="width:68px">菲林折扣</th>
+                                <th style="width:68px">数码折扣</th>
+                                <th style="width:68px">后加工折扣</th>
+                                <th style="width:68px">纯设计折扣</th>
+                                <th style="width:68px">其他1</th>
+                                <th style="width:68px">其他2</th>
+                                <th style="width:68px">其他3</th>
+                                <th style="width:68px">有效期</th>
+                                <th style="width:88px">描述</th>
+                                <th>备注</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var forecast in itemsDiscount)
+                            {
+                                <tr>
+                                    <td>@forecast.编号</td>
+                                    <td><input @bind="forecast.优惠方案名" type="text"   style="width:100%" @bind:after="@(() => 折扣方案更新(forecast))" /></td>
+                                    <td><input @bind="forecast.CTP折扣率" type="text"    style="width:100%" @bind:after="@(() => 折扣方案更新(forecast))" /></td>
+                                    <td><input @bind="forecast.菲林折扣率" type="text"   style="width:100%" @bind:after="@(() => 折扣方案更新(forecast))" /></td>
+                                    <td><input @bind="forecast.数码折扣率" type="text"   style="width:100%" @bind:after="@(() => 折扣方案更新(forecast))" /></td>
+                                    <td><input @bind="forecast.后加工折扣率" type="text" style="width:100%" @bind:after="@(() => 折扣方案更新(forecast))" /></td>
+                                    <td><input @bind="forecast.纯设计折扣率" type="text" style="width:100%" @bind:after="@(() => 折扣方案更新(forecast))" /></td>
+                                    <td><input @bind="forecast.其他折扣率1" type="text"  style="width:100%" @bind:after="@(() => 折扣方案更新(forecast))" /></td>
+                                    <td><input @bind="forecast.其他折扣率2" type="text"  style="width:100%" @bind:after="@(() => 折扣方案更新(forecast))" /></td>
+                                    <td><input @bind="forecast.其他折扣率3" type="text"  style="width:100%" @bind:after="@(() => 折扣方案更新(forecast))" /></td>
+                                    <td><input @bind="forecast.使用有效期" type="text"   style="width:100%" @bind:after="@(() => 折扣方案更新(forecast))" /></td>
+                                    <td><input @bind="forecast.有效期描述" type="text"   style="width:100%" @bind:after="@(() => 折扣方案更新(forecast))" /></td>
+                                    <td><input @bind="forecast.备注"    type="text"      style="width:100%" @bind:after="@(() => 折扣方案更新(forecast))" /></td>
+                                    <td>
+                                        <button class="btn trbtn" @onclick="@(() => 删除折扣方案(forecast))" style="color:red">
+                                            <img src="/image/red-trash2.svg" width="18" class="bi" aria-hidden="true" alt="删" />
+                                        </button>
+                                    </td>
+                                </tr>
+
+
+                            }
+
+                        </tbody>
+                    </table>
+                    <p> <button class="btn btn-primary" @onclick="折扣方案插一行">新建</button>  <button class="btn btn-primary" @onclick="刷新折扣方案">刷新</button></p>
+                    </div>
+                }
+            </div>
+
+            <!-- 自动扣款标签页 -->
+            <div class="tab-pane fade" id="auto" role="tabpanel" aria-labelledby="auto-tab">
+
+              <div>需要超级管理员进行操作</div>
+              <div>
+                  <!-- 系统状态监视器 -->
+                  <div class="status-monitor compact-section" style="@运行状态底色()">
+                      <div class="status-item">
+                          <div class="status-icon">
+                              <img src="/image/b_power.svg" width="18" class="bi" aria-hidden="true" />
+                          </div>
+                          <div class="status-text">
+                              <h3>自动扣款系统状态</h3>
+                              <p style="@运行状态字色()">@运行状态()</p>
+                          </div>
+                      </div>
+             
+                      <div class="status-item">
+                          <div class="status-icon">
+                              <img src="/image/b_list-check.svg" width="18" class="bi" aria-hidden="true" />
+                          </div>
+                          <div class="status-text">
+                            <h3>设置名：@timeSerCon.Name</h3>
+                            <p>@扣款设置描述()</p>
+                          </div>
+                      </div>
+             
+                      <div class="status-item">
+                          <div class="status-icon">
+                              <img src="/image/b_arrow-repeat.svg" width="18" class="bi" aria-hidden="true" />
+                          </div>
+                          <div class="status-text">
+                              <h3>最后执行时间</h3>
+                              <p>@Program.lastTime</p>
+                          </div>
+                      </div>
+             
+             
+                      <div class="status-item">
+                          <div class="status-icon">
+                              <img src="/image/b_clock-history.svg" width="18" class="bi" aria-hidden="true" />
+                          </div>
+                          <div class="status-text">
+                              <h3>下次执行</h3>
+                              <p>@Program.nextTime</p>
+                          </div>
+                      </div>
+                  </div>
+
+                @if (IsadminPro)
+                {
+                    <div class="dashboard">
+                        <!-- 自动扣款设置面板 -->
+                        <div class="panel compact-panel">
+                            <div class="panel-header">
+                                <i class="fas fa-cog"></i>
+                                <span>自动扣款设置</span>
+                            </div>
+                            <div class="panel-body">
+                                <div class="form-group">
+                                    <label class="compact-title">结算多久以前的订单：</label>
+                                    <div class="time-inputs">
+                                        <div class="time-input">
+                                            <input type="number" id="days" min="0" @bind="timeSerCon.SetDay">
+                                            <span>天</span>
+                                        </div>
+                                        <div class="time-input">
+                                            <input type="number" id="hours" min="0" max="23" @bind="timeSerCon.SetHour">
+                                            <span>小时</span>
+                                        </div>
+                                        <div class="time-input">
+                                            <input type="number" id="minutes" min="0" max="59" @bind="timeSerCon.SetMinute">
+                                            <span>分钟</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="compact-title">执行频率设置：</label>
+                                    <div class="row">
+                                        <div class="col-lg-4 mb-1">
+                                            <div class="option-card">
+                                                <div class="option-header">
+                                                    <input type="radio" id="frequency-immediate" name="frequency" @onchange="@(() => selectedValue = 1)" checked="@(selectedValue == 1)">
+                                                    <label for="frequency-immediate">立即执行一次</label>
+                                                </div>
+                                                <div class="option-content">
+                                                    <p>启动后立即执行一次扣款操作，执行好后停止运行</p>
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                        <div class="col-lg-4 mb-1">
+                                            <div class="option-card">
+                                                <div class="option-header">
+                                                    <input type="radio" id="frequency-interval" name="frequency" @onchange="@(() => selectedValue = 2)" checked="@(selectedValue == 2)">
+                                                    <label for="frequency-interval">间隔执行</label>
+                                                </div>
+                                                <div class="option-content">
+                                                    <div class="time-inputs">
+                                                        <div>
+                                                            <span>每</span>
+                                                        </div>
+                                                        <div class="time-input">
+                                                            <input type="number" id="interval-value" min="0" @bind="timeSerCon.ExeHour">
+                                                            <span>小时</span>
+                                                        </div>
+                                                        <div class="time-input">
+                                                            <input type="number" id="interval-value" min="0" @bind="timeSerCon.ExeMinute">
+                                                            <span>分</span>
+                                                        </div>
+                                                        <div class="time-input">
+                                                            <input type="number" id="interval-value" min="0" @bind="timeSerCon.ExeSecond">
+                                                            <span>秒</span>
+                                                        </div>
+                                                        <div>
+                                                            <span>执行一次</span>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                        <div class="col-lg-4 mb-1">
+                                            <div class="option-card">
+                                                <div class="option-header">
+                                                    <input type="radio" id="frequency-daily" name="frequency" @onchange="@(() => selectedValue = 3)" checked="@(selectedValue == 3)">
+                                                    <label for="frequency-daily">每日定时执行</label>
+                                                </div>
+                                                <div class="option-content">
+                                                    <p>每天在以下时间点执行扣款操作：</p>
+                                                    <div class="time-slots">
+
+                                                        @foreach (var fore in TimeAutoSetList)
+                                                        {
+                                                            <div class="time-slot">
+                                                                <input type="time" @bind="fore.ExeTimeOnly" @bind:after="@(() => 更新时间(fore))">
+                                                                <button class="btn remove-time" @onclick="() => 删除时间(fore)">
+                                                                    <img src="/image/red-x.svg" width="14" class="bi img-up" aria-hidden="true" alt="x" />
+                                                                </button>
+                                                            </div>
+                                                        }
+
+                                                    </div>
+                                                    <button class="add-time-btn" @onclick="新建每日执行时间">
+                                                        <img src="/image/svg-white/White_plus.svg" width="16" class="bi img-up" aria-hidden="true" alt="+" />
+                                                        添加执行时间
+                                                    </button>
+                                                    <button class="add-time-btn" @onclick="排序时间">
+                                                        <img src="/image/svg-white/White_arrow-couterclockwise.svg" width="16" class="bi img-up" aria-hidden="true" alt=">" />
+                                                        排序
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="action-buttons">
+                                    <button class="btn btn-save" @onclick="SaveConfig">
+                                        <img src="/image/svg-white/White_pencil-square-fill.svg" width="16" class="bi" aria-hidden="true" />
+                                        保存配置
+                                    </button>
+                                    <button class="btn btn-start" @onclick="启动" disabled="@cisRun">
+                                        <img src="/image/svg-white/White_play-fill.svg" width="16" class="bi" aria-hidden="true" />
+                                        启动自动扣款
+                                    </button>
+                                    <button class="btn btn-stop" @onclick="停止" disabled="@(!cisRun)">
+                                        <img src="/image/svg-white/White_stop-fill.svg" width="16" class="bi" aria-hidden="true" />
+                                        停止
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                }
+
+                @if (Isadmin)
+                {
+
+                    <!-- 手动扣款面板 -->
+                    <div class="panel compact-panel">
+                        <div class="panel-header">
+                            <i class="fas fa-search-dollar"></i>
+                            <span>工单查询与手动扣款</span>
+                        </div>
+                        <div class="panel-body">
+                            <div class="search-form">
+                                <div>
+                                    <label for="customer-id">客户名</label>
+                                    <input type="text" @bind="扣款客户名" id="customer-id" class="form-control" placeholder="输入客户名称" list="customerList">
+                                </div>
+                                <div>
+                                    <label for="customer-id">分类</label>
+                                    <select @bind="分类名" class="form-control" id="customer-id">
+                                        <option value="全部">全部</option>
+                                        <option value="CTP">CTP</option>
+                                        <option value="菲林">菲林</option>
+                                        <option value="彩喷">彩喷</option>
+                                        <option value="印刷">印刷</option>
+                                        <option value="后道">后道</option>
+                                        <option value="设计">设计</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="customer-id">工作名</label>
+                                    <input type="text" @bind="扣款工作名" id="job-name" class="form-control" placeholder="输入工作名称">
+                                </div>
+
+                                <div>
+                                    <label for="date-range">时间范围</label>
+                                    <div style="display: flex; gap: 10px;">
+                                        <input type="date" @bind="扣款开始日期" id="start-date" class="form-control">
+                                        <input type="date" @bind="扣款截止日期" id="end-date" class="form-control">
+                                    </div>
+                                </div>
+
+                                <button class="btn btn-search" @onclick="扣款工单查询">
+                                    <img src="/image/svg-white/White_zoom.svg" width="22" class="bi" aria-hidden="true" />
+                                    查询工单
+                                </button>
+                            </div>
+
+                            @if (vip未结 == null)
+                            {
+                                <p><em>Loading...</em></p>
+                            }
+                            else
+                            {
+
+                                <table class="results-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 30px;"><input type="checkbox" id="select-all" @bind="全选" @bind:after="@修改全选"></th>
+                                            <th>分类</th>
+                                            <th>编号</th>
+                                            <th>日期</th>
+                                            <th style="max-width:168px">客户</th>
+                                            <th style="max-width:188px">工作名</th>
+                                            <th>规格</th>
+                                            <th>数量</th>
+                                            <th>价格</th>
+                                            <th>状态</th>
+                                            <th style="width:138px;">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in 扣款查询PageItems)
+                                        {
+                                            <tr>
+                                                <td><input type="checkbox" class="order-checkbox" @bind=item.临时选定></td>
+                                                <td>@item.分类</td>
+                                                <td>@item.ID</td>
+                                                <td>@item.日期</td>
+                                                <td>@item.客户</td>
+                                                <td>@item.品名</td>
+                                                <td>@item.规格</td>
+                                                <td>@item.数量</td>
+                                                <td>@item.价格</td>
+                                                <td><span class="status-badge status-pending">@item.结算状态</span></td>
+                                                <td>
+                                                    @if (item.结清 == true)
+                                                    {
+                                                        <button class="refund-btn" @onclick="() => 单条退款(item)">退款</button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <button class="debit-btn" @onclick="() => 单条扣款(item)">扣款</button>
+                                                    }
+
+                                                    <button class="action-btn">详情</button>
+                                                </td>
+
+                                            </tr>
+                                        }
+
+
+                                    </tbody>
+                                </table>
+
+                                <div class="batch-actions">
+                                    <div class="select-info">
+                                        已选择 <span id="selected-count">@选中条数()</span> 个工单
+                                    </div>
+                                    <!-- 手动扣款分页控件 -->
+                                    <div class="pagination">
+
+                                        <span>共: <strong>@扣款查询条数()</strong>条</span>
+
+                                        <button class="btn btn-primary" @onclick="扣款查询首页" disabled="@(扣款查询Page == 1)">首页</button>
+                                        <button class="btn btn-primary" @onclick="扣款查询上一页" disabled="@(扣款查询Page == 1)">上一页</button>
+
+                                        <span>第 @扣款查询Page 页 / 共 @扣款查询totalPages 页</span>
+                                        <span>每页: </span>
+                                        <select @bind="扣款查询pageSize" @bind:after="扣款查询UpdatePagination">
+                                            <option value="15">15</option>
+                                            <option value="30">30</option>
+                                            <option value="80">80</option>
+                                            <option value="200">200</option>
+                                            <option value="500">500</option>
+                                        </select>
+
+                                        <button class="btn btn-primary" @onclick="扣款查询下一页" disabled="@(扣款查询Page == 扣款查询totalPages)">下一页</button>
+                                        <button class="btn btn-primary" @onclick="扣款查询末页" disabled="@(扣款查询Page == 扣款查询totalPages)">末页</button>
+
+                                        <input type="number" min="1" max="@扣款查询totalPages" @bind="扣款查询gotoPage" style="width:60px" />
+                                        <button class="btn btn-primary" @onclick="扣款查询跳转">跳转</button>
+                                    </div>
+
+                                    <button class="btn btn-batch" @onclick="批量扣款">
+                                        <img src="/image/svg-white/White_s-arrow.svg" width="22" class="bi" aria-hidden="true" />
+                                        批量扣款
+                                    </button>
+                                </div>
+
+                            }
+
+                        </div>
+                    </div>
+
+                }
+                
+              </div>
+
+
+          </div>
+
+</div>
+    
+</div>
+
+<!-- 确定充值弹窗 -->
+@if (ShowSettle)
+{
+    <div class="custom-dialog" @onclick:stopPropagation>
+    <div class="dialog-content">
+        <div class="dialog-header">
+            请核对充值信息
+        </div>
+
+        <div class="dialog-item">
+            <div class="info-item">
+                <span class="info-label">客户名：</span>
+                <span class="info-value">@khid</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">充值金额：</span>
+                <span class="info-value amount-value">@czje.ToString("C")</span>
+            </div>
+
+            <div class="info-item">
+                <span class="info-label">赠送金额：</span>
+                <span class="info-value amount-value">@zsje.ToString("C")</span>
+            </div>
+
+            <form class="info-item">
+                <label class="info-label" for="aaaa">付款方式：</label>
+                <input id="aaaa" type="text" @bind="fkfs" style="background-color:rgb(255,255,208)" list="fkoptions">
+            </form>
+            <form class="info-item">
+                <label class="info-label" for="bbbb">确认密码：</label>
+                    <input id="bbbb" type="password" @bind="Password" placeholder="请输入您的安全密码">
+            </form>
+
+            <div class="message">
+                <span>@bb</span>
+            </div>
+
+            <div class="button-group">
+                <button class="dialog-button confirm-btn" @onclick="确定充值">
+                    <img src="/image/svg-white/White_check-circle-fill.svg" width="16" class="bi" aria-hidden="true" />
+                    确认充值
+                </button>
+                <button class="dialog-button cancel-btn" @onclick="取消结清">
+                        <img src="/image/svg-black/x.svg" width="16" class="bi" aria-hidden="true" style="opacity: 0.6" />
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+
+}
+
+
+<!-- 输入框下拉列表 -->
+<datalist id="customerList">
+    @if (kh != null) foreach (var fore in kh)
+        {
+            <option value="@fore.客户ID"></option>
+        }
+
+</datalist>
+
+<datalist id="discountList">
+
+    @if (itemsDiscount != null) foreach (var fore in itemsDiscount)
+        {
+            <option value="@fore.优惠方案名"></option>
+        }
+
+</datalist>
+
+<datalist id="fkoptions">
+    <option value="现金"></option>
+    <option value="微信"></option>
+    <option value="支付宝"></option>
+    <option value="银行对公"></option>
+    <option value="承兑"></option>
+    <option value="银行对私"></option>
+    <option value="一码通"></option>
+    <!-- 更多选项 -->
+</datalist>
+ 
+<datalist id="jylxList">
+    <option value="全部"></option>
+    <option value="充值"></option>
+    <option value="扣款"></option>
+    <option value="退款"></option>
+    <!-- 更多选项 -->
+</datalist>
+
+<datalist id="yuangongList">
+    @if (kh != null) foreach (var fore in yg)
+        {
+            <option value="@fore.姓名"></option>
+        }
+
+</datalist>
+
+<script>
+    // 简单的标签页切换效果增强
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabLinks = document.querySelectorAll('#rechargeTab .nav-link');
+
+        tabLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                tabLinks.forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    });
+</script>
+
+@code {
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+    AuthState? AuthState;
+
+    private bool Isadmin { get; set; } = false; //是否为管理员
+    private bool IsadminPro { get; set; } = false; //是否为超级管理员
+
+    PaginationState pagination = new PaginationState { ItemsPerPage = 50 };
+
+    IQueryable<交易流水表>? itemsJyls;
+    IQueryable<充值账户>? itemsCzzh;
+    IQueryable<充值折扣方案>? itemsDiscount;
+    IQueryable<客户表>? kh;
+    IQueryable<员工>? yg;
+    IQueryable<客户表>? vip汇总;
+    IQueryable<dbModel>? vip未结;
+
+    string khid = "";   //客户ID
+    string khdh = "";   //客户电话
+    decimal khye = 0;   //客户余额
+    string khlx = "";   //客户类型
+    string khgs = "";   //客户公司
+    decimal khwj = 0;   //客户未结金额
+    string khlxr = ""; //客户联系人
+
+    decimal czje = 0;   //充值金额
+    decimal zsje = 0;   //赠送金额
+    string fkfs = "";   //付款方式
+    DateTime yxq = DateTime.Now.AddDays(366);  //有效期
+    int kkyxj = 6;     //扣款优先级
+    string czsm = "预付款";  //充值说明
+    bool bczk = false; //保持折扣
+    string zkfa = "";  //折扣方案
+    float zk_ctp = 1;
+    float zk_fl = 1;
+    float zk_sm = 1;
+    float zk_hd = 1;
+    float zk_sj = 1;
+    float zk_qt = 1;
+    float zk_qt2 = 1;
+    float zk_qt3 = 1;
+
+    string wangdian = "";  //网点名称
+    string Password = "";   //确认密码
+
+    DateTime datestart = DateTime.Now.AddDays(-366);  //搜索开始日期
+    DateTime dateend = DateTime.Now;  //搜索结束日期
+    string jylx = "";    //交易类型
+    string czyg = "";    //操作员工
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = authenticationState?.Result as AuthState;
+        //判断是否为管理员
+        Isadmin = AuthState?.IsAdmin == true;
+        IsadminPro = AuthState?.IsAdminPro == true;
+
+        //加载数据
+        itemsDiscount = HongtengDbCon.Db.Queryable<充值折扣方案>().ToArray().AsQueryable();
+        itemsJyls = HongtengDbCon.Db.Queryable<交易流水表>().OrderByDescending(it => it.流水号).Take(100).ToArray().AsQueryable();
+
+        kh = HongtengDbCon.Db.Queryable<客户表>().Where(it => it.IsDelete == false).ToArray().AsQueryable();
+        yg = HongtengDbCon.Db.Queryable<员工>().Where(it => it.是否已离职 == false || it.是否已离职 == null).ToArray().AsQueryable();
+
+        //-----------------------自动扣款加载数据----------------------
+        TimeAutoSetList = HongtengDbCon.Db.Queryable<自动扣款时间设置>().OrderBy(it => it.ExeTime).ToList();
+
+        timeSerCon = HongtengDbCon.Db.Queryable<自动扣款设置>().First();
+
+        selectedValue = timeSerCon.ExecuteSet ?? 1;
+
+        Program.lastTime = timeSerCon.LastTime;
+        Program.nextTime = timeSerCon.NextTime;
+
+        cisRun = BackgroundService.IsRunning;
+
+        //-----------------------加载VIP客户余额信息----------------------
+        var VIP数码未结 = HongtengDbCon.Db.Queryable<工作表_数码印刷>()
+                             .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
+                             .Where((it, cus) => it.结清 == false || it.结清 == null)
+                             .Where((it, cus) => cus.VIP客户 == true)
+                             .Select((it, cus) => new dbModel { 分类 = "印刷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 价格 = it.应收, 结清=it.结清, 结算状态 = it.结算状态, 品名 = it.文件或工作名, 数量 = it.张数, 规格 = it.纸张类型 })
+                             ;
+        var VIP后道未结 = HongtengDbCon.Db.Queryable<工作表_后道加工>()
+                             .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
+                             .Where((it, cus) => it.结清 == false || it.结清 == null)
+                             .Where((it, cus) => cus.VIP客户 == true)
+                             .Select((it, cus) => new dbModel { 分类 = "后道", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 价格 = it.应收, 结清 = it.结清, 结算状态 = it.结算状态, 品名 = it.文件或工作名, 数量 = it.数量, 规格 = it.要求 })
+                             ;
+        var VIPCTP未结 = HongtengDbCon.Db.Queryable<工作表_CTP输出>()
+                             .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
+                             .Where((it, cus) => it.结清 == false || it.结清 == null)
+                             .Where((it, cus) => cus.VIP客户 == true)
+                             .Select((it, cus) => new dbModel { 分类 = "CTP", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 价格 = it.应收, 结清 = it.结清, 结算状态 = it.结算状态, 品名 = it.文件或工作名, 数量 = it.总色数, 规格 = it.CTP板材型号 })
+                             ;
+        var VIP菲林未结 = HongtengDbCon.Db.Queryable<工作表_菲林输出>()
+                             .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
+                             .Where((it, cus) => it.结清 == false || it.结清 == null)
+                             .Where((it, cus) => cus.VIP客户 == true)
+                             .Select((it, cus) => new dbModel { 分类 = "菲林", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 价格 = it.应收, 结清 = it.结清, 结算状态 = it.结算状态, 品名 = it.文件或工作名, 数量 = it.总色数, 规格 = $"{it.长}x{it.宽}" })
+                             ;
+        var VIP设计未结 = HongtengDbCon.Db.Queryable<工作表_设计制作>()
+                             .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
+                             .Where((it, cus) => it.结清 == false || it.结清 == null)
+                             .Where((it, cus) => cus.VIP客户 == true)
+                             .Select((it, cus) => new dbModel { 分类 = "设计", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 价格 = it.应收, 结清 = it.结清, 结算状态 = it.结算状态, 品名 = it.文件或工作名, 数量 = it.总色数, 规格 = $"{it.长}x{it.宽}" })
+                             ;
+        var VIP彩喷未结 = HongtengDbCon.Db.Queryable<工作表_彩喷写真>()
+                             .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
+                             .Where((it, cus) => it.结清 == false || it.结清 == null)
+                             .Where((it, cus) => cus.VIP客户 == true)
+                             .Select((it, cus) => new dbModel { 分类 = "彩喷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 价格 = it.应收, 结清 = it.结清, 结算状态 = it.结算状态, 品名 = it.文件或工作名, 数量 = it.张数, 规格 = it.规格 })
+                             ;
+        vip未结 = HongtengDbCon.Db.UnionAll(VIP数码未结, VIP后道未结, VIPCTP未结, VIP菲林未结, VIP设计未结, VIP彩喷未结).ToList().AsQueryable();
+        var VIP未结合计 = vip未结.GroupBy(it => it.客户)
+                                      .Select(it => new
+                                      {
+                                          客户 = it.Key,
+                                          价格合计 = it.Sum(x => x.价格) ?? 0
+                                      });
+
+        var vipkh = HongtengDbCon.Db.Queryable<客户表>().Where(it => it.IsDelete == false && it.VIP客户 == true).ToList().AsQueryable();
+
+        vip汇总 = from kk in vipkh
+                join jyl in VIP未结合计 on kk.客户ID equals jyl.客户 into gj
+                from subJyl in gj.DefaultIfEmpty()
+                select new 客户表
+                  {
+                      自动编号 = kk.自动编号,
+                      客户ID = kk.客户ID,
+                      公司名称 = kk.公司名称,
+                      联系人 = kk.联系人,
+                      手机 = kk.手机,
+                      username = kk.username,
+                      password = kk.password,
+                      地址 = kk.地址,
+                      客户类型 = kk.客户类型,
+                      备注 = kk.备注,
+                      VIP客户 = kk.VIP客户,
+                      CTP折扣率 = kk.CTP折扣率,
+                      菲林折扣率 = kk.菲林折扣率,
+                      数码折扣率 = kk.数码折扣率,
+                      后加工折扣率 = kk.后加工折扣率,
+                      纯设计折扣率 = kk.纯设计折扣率,
+                      其他折扣率 = kk.其他折扣率,
+                      上期充值额 = kk.上期充值额,
+                      账户余额 = kk.账户余额,
+                      IsDelete = kk.IsDelete,
+                    未结金额 = subJyl!=null ? subJyl.价格合计 : 0m
+                };
+
+
+        UpdatePagination();
+        扣款查询UpdatePagination();
+        await InvokeAsync(StateHasChanged);
+
+    }
+
+    public string 扣款设置描述()
+    {
+        if (timeSerCon.ExecuteSet == 1)
+        {
+            return "立即执行一次";
+        }
+        else if (timeSerCon.ExecuteSet == 2)
+        {
+            return $"每隔 {timeSerCon.ExeHour}小时 {timeSerCon.ExeMinute}分 {timeSerCon.ExeSecond}秒 执行一次";
+        }
+        else if (timeSerCon.ExecuteSet == 3)
+        {
+            if (TimeAutoSetList.Count == 0)
+            {
+                return "未设置任何时间点";
+            }
+            else
+            {
+                string s = "每天在 ";
+                foreach (var fore in TimeAutoSetList)
+                {
+                    s += fore.ExeTimeOnly.ToString(@"HH\:mm") + " , ";
+                }
+                s = s.TrimEnd(' ', ',');
+                s += " 执行";
+                return s;
+            }
+        }
+        else
+        {
+            return "未设置";
+        }
+        
+    }
+
+    public void ClearReset()
+    {
+        khid = "";   //客户ID
+        khdh = "";   //客户电话
+        khye = 0;    //客户余额
+        khlx = "";   //客户类型
+        khgs = "";   //客户公司
+        khwj = 0;   //客户未结金额
+        khlxr = ""; //客户联系人
+
+        czje = 0;   //充值金额
+        zsje = 0;   //赠送金额
+        fkfs = "";   //付款方式
+        yxq = DateTime.Now.AddDays(366);  //有效期
+        kkyxj = 6;     //扣款优先级
+        czsm = "预付款";  //充值说明
+        bczk = false; //保持折扣
+        zkfa = "";  //折扣方案
+        zk_ctp = 1;
+        zk_fl = 1;
+        zk_sm = 1;
+        zk_hd = 1;
+        zk_sj = 1;
+        zk_qt = 1;
+        zk_qt2 = 1;
+        zk_qt3 = 1;
+
+        Password = "";
+    }
+
+    public void 刷新充值记录()
+    {
+        if (khid==null)
+        {
+            return;
+        }
+        var khitem = HongtengDbCon.Db.Queryable<客户表>().Where(it => it.客户ID == khid).First();
+        khdh = khitem?.手机 ?? "";       //客户手机电话
+        khye = 计算账户余额(khid);         //客户账户余额
+        khwj = 计算未结金额(khid);         //客户未结金额
+        khlx = khitem?.客户类型 ?? "";       //客户类型
+        khgs = khitem?.公司名称 ?? "";   //客户公司
+        khlxr = khitem?.联系人 ?? "";   //客户联系人
+
+        itemsCzzh = HongtengDbCon.Db.Queryable<充值账户>().Where(it => it.客户ID == khid).ToArray().AsQueryable().OrderByDescending(it => it.流水号);
+        StateHasChanged();
+    }
+
+    public void 更新充值优先级(充值账户 p)
+    {
+        HongtengDbCon.Db.Updateable<充值账户>()
+                                 .SetColumns(it => new 充值账户() { 使用优先级 = p.使用优先级 })
+                                 .Where(it => it.ID == p.ID)
+                                 .ExecuteCommand();
+    }
+
+    public void 更新客户信息(string khm)
+    {
+        var khitem = HongtengDbCon.Db.Queryable<客户表>().Where(it => it.客户ID == khm).First();
+        //khid = khitem?.客户ID ?? "";     //客户ID
+        khdh = khitem?.手机 ?? "";       //客户手机电话
+        khye = 计算账户余额(khm);         //客户账户余额
+        khwj = 计算未结金额(khm);         //客户未结金额
+        khlx = khitem?.客户类型 ?? "";       //客户类型
+        khgs = khitem?.公司名称 ?? "";   //客户公司
+        khlxr = khitem?.联系人 ?? "";   //客户联系人
+
+        itemsCzzh = HongtengDbCon.Db.Queryable<充值账户>().Where(it => it.客户ID == khm).ToArray().AsQueryable().OrderByDescending(it => it.流水号);
+    }
+
+    public decimal 计算理论余额(string khm)
+    {
+        var a = 计算账户余额(khm) - 计算未结金额(khm);
+        return a;
+    }
+
+    public decimal 计算账户余额(string khm)
+    {
+        var khitem = HongtengDbCon.Db.Queryable<充值账户>().Where(it => it.客户ID == khm && it.到期时间 >= DateTime.Today);
+        var ye = khitem.Sum(it => it.剩余金额) ?? 0;
+        return ye;
+    }
+
+    public decimal 计算未结金额(string khm)
+    {
+        var smitem = HongtengDbCon.Db.Queryable<工作表_数码印刷>().Where(it => it.客户 == khm).Where(it => it.结清 == false || it.结清 == null);
+        var ctpitem = HongtengDbCon.Db.Queryable<工作表_CTP输出>().Where(it => it.客户 == khm).Where(it => it.结清 == false || it.结清 == null);
+        var flitem = HongtengDbCon.Db.Queryable<工作表_菲林输出>().Where(it => it.客户 == khm).Where(it => it.结清 == false || it.结清 == null);
+        var sjitem = HongtengDbCon.Db.Queryable<工作表_设计制作>().Where(it => it.客户 == khm).Where(it => it.结清 == false || it.结清 == null);
+        var hditem = HongtengDbCon.Db.Queryable<工作表_后道加工>().Where(it => it.客户 == khm).Where(it => it.结清 == false || it.结清 == null);
+        var cpitem = HongtengDbCon.Db.Queryable<工作表_彩喷写真>().Where(it => it.客户 == khm).Where(it => it.结清 == false || it.结清 == null);
+
+        var ye = (smitem.Sum(it => it.应收) ?? 0) + (ctpitem.Sum(it => it.应收) ?? 0) + (flitem.Sum(it => it.应收) ?? 0) + (sjitem.Sum(it => it.应收) ?? 0) + (hditem.Sum(it => it.应收) ?? 0) + (cpitem.Sum(it => it.应收) ?? 0);
+
+        return ye;
+    }
+
+
+    //弹出窗口-结清账单
+    string? bb = "";
+    private bool ShowSettle { get; set; }
+    private void ShowSettleEvent()
+    {
+        bb = "";
+        string erra = "";
+        string errb = "";
+        string errc = "";
+        string errd = "";
+        if (fkfs =="")
+        {
+            erra = "缺付款方式！";
+
+        }
+        if (czje <= 0 || zsje<0)
+        {
+            errb = "金额异常！";
+
+        }
+
+        if (czje <  zsje*5)
+        {
+            errc = "赠送额异常！";
+
+        }
+
+        if (zk_ctp < 0.5 || zk_fl < 0.5 || zk_sm < 0.5 || zk_hd < 0.5 || zk_sj < 0.5 || zk_qt < 0.5 )
+        {
+            errd = "折扣异常！";
+        }
+
+        bb = erra + errb + errc + errd;
+
+        var khitem = HongtengDbCon.Db.Queryable<客户表>().Where(it => it.客户ID == khid).First();
+        if (khitem == null)
+        {
+            bb = "客户为空！";
+        }
+
+        ShowSettle = true;
+    }
+
+    int errcount = 0; //错误次数
+    private void 确定充值()
+    {
+        var khitem = HongtengDbCon.Db.Queryable<客户表>().Where(it => it.客户ID == khid).First();
+        if (khitem == null)
+        {
+            bb = "无客户！请先建立客户再充值。";
+        }
+        else
+        {
+
+            if (errcount > 5)
+            {
+                bb = "密码错误次数过多！";
+                return;
+            }
+
+            string? phone = AuthState?.Phone;
+            if (phone == null)
+            {
+                bb = "无法获取用户的电话号码，请检查登录状态。";
+                return;
+            }
+
+            string pwd = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(Password))).ToLower();
+
+            //验证密码后充值
+            if (HongtengDbCon.Db.Queryable<员工>().Any(it => it.手机 == phone && it.密码 == pwd && (it.是否已离职 == false || it.是否已离职 == null)))
+            {
+                wangdian = AuthState?.BuMen ?? "网页访问";  //部门网点
+
+                khye = 计算账户余额(khid);   //原账户余额合计
+                khye = khye + czje + zsje;   //充值后账户余额合计
+                var fsje = czje + zsje;      //发生金额=付款+赠送
+                string zy = "充值" + czje + "，送" + zsje + "。";  //充值摘要
+                int zdh = 0;    //收款账单号
+
+
+
+                var jyls = HongtengDbCon.Db.Insertable(new 交易流水表() { 日期 = DateTime.Now, 客户 = khid, 交易类型 = "充值", 用途名称 = czsm, 摘要 = zy, 发生金额 = fsje, 账户余额 = khye, 赠送金额 = zsje, 收付款方式 = fkfs, 网点 = wangdian, 操作员 = AuthState?.UserName }).IgnoreColumns(ignoreNullColumn: true).ExecuteReturnEntity();
+
+                var czzk = HongtengDbCon.Db.Insertable(new 充值折扣表() { 折扣方案 = khid, 充值额 = czje, CTP折扣率 = zk_ctp, 菲林折扣率 = zk_fl, 数码折扣率 = zk_sm, 后加工折扣率 = zk_hd, 纯设计折扣率 = zk_sj, 其他折扣率1 = zk_qt, 其他折扣率2 = zk_qt2, 其他折扣率3 = zk_qt3, 备注 = "充值" + czje + "元" }).IgnoreColumns(ignoreNullColumn: true).ExecuteReturnEntity();
+
+                //充值金额大于0，建立收款单，计入充值账户。
+                if (czje > 0)
+                {
+                    var skzd = HongtengDbCon.Db.Insertable(new 收款账单() { 日期 = DateTime.Now, 客户ID = khid, 收款部门 = wangdian, 付款类型 = fkfs, 实收金额 = czje, 账单状态 = "已充值", 操作员 = AuthState?.UserName, 有效 = true, 打印时间 = DateTime.Now, 备注 = czsm }).IgnoreColumns(ignoreNullColumn: true).ExecuteReturnEntity();
+                    zdh = skzd.收款单编号;
+                    var czzh = HongtengDbCon.Db.Insertable(new 充值账户() { 客户ID = khid, 充值时间 = DateTime.Now, 使用优先级 = kkyxj, 到期时间 = yxq, 充值金额 = czje, 剩余金额 = czje, 是否为赠送 = false, 折扣链接 = czzk.编号, 网点 = wangdian, 操作员 = AuthState?.UserName, 交易方式 = fkfs, 说明 = czsm, 账单号 = zdh, 流水号 = jyls.流水号, 有效期 = zkfa, 客户编号 = khitem.自动编号 }).IgnoreColumns(ignoreNullColumn: true).ExecuteReturnEntity();
+
+                }
+
+                //赠送金额只计入充值账户，无收款单。
+                if (zsje > 0)
+                {
+                    var czzs = HongtengDbCon.Db.Insertable(new 充值账户() { 客户ID = khid, 充值时间 = DateTime.Now, 使用优先级 = kkyxj, 到期时间 = yxq, 充值金额 = zsje, 剩余金额 = zsje, 是否为赠送 = true, 折扣链接 = czzk.编号, 网点 = wangdian, 操作员 = AuthState?.UserName, 交易方式 = "充值赠送", 说明 = "充" + czje + "，送" + zsje, 账单号 = zdh, 流水号 = jyls.流水号, 有效期 = zkfa, 客户编号 = khitem.自动编号 }).IgnoreColumns(ignoreNullColumn: true).ExecuteReturnEntity();
+
+                }
+
+                bb = "";
+
+                itemsCzzh = HongtengDbCon.Db.Queryable<充值账户>().Where(it => it.客户ID == khid).ToArray().AsQueryable().OrderByDescending(it => it.流水号);
+                ShowSettle = false;
+                Password = "";
+
+                JS.InvokeVoidAsync("alert", "充值成功！");
+                khitem.VIP客户 = true;
+                khitem.客户类型 = "VIP";
+                khitem.上期充值额 = czje; //更新上期充值额
+                khitem.账户余额 = khye; //更新账户余额
+                HongtengDbCon.Db.Updateable(khitem).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+            }
+            else
+            {
+                errcount++;
+                bb = "密码错误，无权操作";
+            }
+        }
+    }
+
+    private void 取消结清()
+    {
+        ShowSettle = false;
+        Password = "";
+    }
+
+    private void 载入签约折扣()
+    {
+        var khitem = HongtengDbCon.Db.Queryable<客户表>().Where(it => it.客户ID == khid).First();
+        if (khitem!= null)
+        {
+            yxq = DateTime.Now.AddDays(3653);  //有效期
+            bczk = true; //保持折扣
+            zkfa = "签约折扣";  //折扣方案
+            zk_ctp = khitem.CTP折扣率 ?? 1;
+            zk_fl = khitem.菲林折扣率 ?? 1;
+            zk_sm = khitem.数码折扣率 ?? 1;
+            zk_hd = khitem.后加工折扣率 ?? 1;
+            zk_sj = khitem.纯设计折扣率 ?? 1;
+            zk_qt = khitem.其他折扣率 ?? 1;
+            zk_qt2 = 1;
+            zk_qt3 = 1;
+        }
+
+    }
+
+    private void 更新折扣方案(string zk)
+    {
+        var zkitem = HongtengDbCon.Db.Queryable<充值折扣方案>().Where(it => it.优惠方案名 == zk).First();
+        if (zkitem != null)
+        {
+            yxq = DateTime.Now.AddDays(zkitem.使用有效期 ?? 366);  //有效期
+            zk_ctp = zkitem.CTP折扣率 ?? 1;
+            zk_fl = zkitem.菲林折扣率 ?? 1;
+            zk_sm = zkitem.数码折扣率 ?? 1;
+            zk_hd = zkitem.后加工折扣率 ?? 1;
+            zk_sj = zkitem.纯设计折扣率 ?? 1;
+            zk_qt = zkitem.其他折扣率1 ?? 1;
+            zk_qt2 = zkitem.其他折扣率2 ?? 1;
+            zk_qt3 = zkitem.其他折扣率3 ?? 1;
+        }
+    }
+
+    private void 更新充值金额()
+    {
+        if (!bczk)
+        {
+            if (czje < 100)
+            {
+                zkfa = "预设_无折扣";
+                更新折扣方案("预设_无折扣");
+            }
+            if (czje >= 100 && czje < 500)
+            {
+                zkfa = "预设_100";
+                更新折扣方案("预设_100");
+            }
+            if (czje >= 500 && czje < 1000)
+            {
+                zkfa = "预设_500";
+                更新折扣方案("预设_500");
+            }
+            if (czje >= 1000 && czje < 2000)
+            {
+                zkfa = "预设_1千";
+                更新折扣方案("预设_1千");
+            }
+            if (czje >= 2000 && czje < 5000)
+            {
+                zkfa = "预设_2千";
+                更新折扣方案("预设_2千");
+            }
+            if (czje >= 5000 && czje < 10000)
+            {
+                zkfa = "预设_5千";
+                更新折扣方案("预设_5千");
+            }
+            if (czje >= 10000 && czje < 20000)
+            {
+                zkfa = "预设_1万";
+                更新折扣方案("预设_1万");
+            }
+            if (czje >= 20000 && czje < 50000)
+            {
+                zkfa = "预设_2万";
+                更新折扣方案("预设_2万");
+            }
+            if (czje >= 50000 && czje < 100000)
+            {
+                zkfa = "预设_5万";
+                更新折扣方案("预设_5万");
+            }
+            if (czje >= 100000)
+            {
+                zkfa = "预设_10万";
+                更新折扣方案("预设_10万");
+            }
+        }
+
+
+    }
+
+
+    // -------------------------------------排序-----------------------------------
+    // 排序状态
+    private string currentSortColumn = "";
+    private bool isAscending = true;
+
+    // 列名映射 - 确保属性名正确
+    private readonly Dictionary<string, string> columnMappings = new Dictionary<string, string>
+    {
+        {"流水号","流水号"},
+        {"日期","日期"},
+        {"客户","客户"},
+        {"交易类型","交易类型"},
+        {"工单号","工单号"},
+        {"工单日期","工单日期"},
+        {"用途名称","用途名称"},
+        {"摘要","摘要"},
+        {"原价","原价"},
+        {"折扣","折扣"},
+        {"发生金额","发生金额"},
+        {"账户余额","账户余额"},
+        {"网点","网点"},
+        {"操作员","操作员"},
+        {"收付款方式","收付款方式"},
+        {"收付款说明","收付款说明"},
+        {"扣款账号","扣款账号"},
+        {"备注", "备注" }
+    };
+
+    // 通用排序方法 - 添加 StateHasChanged 调用
+    private void SortData(string columnName)
+    {
+        if (!columnMappings.TryGetValue(columnName, out var propertyName))
+            return;
+
+        if (itemsJyls == null)
+            return;
+
+        if (currentSortColumn == columnName)
+        {
+            // 相同列切换排序方向
+            isAscending = !isAscending;
+        }
+        else
+        {
+            // 新列默认升序
+            currentSortColumn = columnName;
+            isAscending = true;
+        }
+
+        // 应用排序
+        try
+        {
+            if (isAscending)
+            {
+                itemsJyls = itemsJyls.OrderByDynamic(propertyName);
+            }
+            else
+            {
+                itemsJyls = itemsJyls.OrderByDescendingDynamic(propertyName);
+            }
+
+            // 强制刷新UI
+            UpdatePagination();
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"排序错误: {ex.Message}");
+        }
+
+        currentPage = 1; // 排序后回到第一页
+        UpdatePagination();
+
+    }
+
+    // 获取排序指示器图片 - 确保路径正确
+    private string GetSortIndicator(string columnName)
+    {
+        if (currentSortColumn != columnName)
+            return "/image/arrowNone.svg"; // 无排序状态
+
+        return isAscending ? "/image/arrowUp.svg" : "/image/arrowDown.svg";
+    }
+
+
+    // --------------------------------交易流水分页相关-----------------------------
+    private int currentPage = 1;
+    private int pageSize = 30;
+    private int totalPages = 1;
+    private int gotoPage = 1;
+    private 交易流水表[]? jylsPageItems;
+
+    // 分页方法
+    private void UpdatePagination()
+    {
+        if (itemsJyls == null || !itemsJyls.Any())
+        {
+            totalPages = 1;
+            jylsPageItems = Array.Empty<交易流水表>();
+            return;
+        }
+
+        // 计算总页数
+        int totalCount = itemsJyls.Count();
+        totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        // 确保当前页在有效范围内
+        currentPage = Math.Clamp(currentPage, 1, totalPages);
+
+        // 获取当前页数据
+        jylsPageItems = itemsJyls
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToArray();
+    }
+
+    private void FirstPage()
+    {
+        currentPage = 1;
+        UpdatePagination();
+    }
+
+    private void PreviousPage()
+    {
+        currentPage = Math.Max(1, currentPage - 1);
+        UpdatePagination();
+    }
+
+    private void NextPage()
+    {
+        currentPage = Math.Min(totalPages, currentPage + 1);
+        UpdatePagination();
+    }
+
+    private void LastPage()
+    {
+        currentPage = totalPages;
+        UpdatePagination();
+    }
+
+    private void GoToPage()
+    {
+        currentPage = Math.Clamp(gotoPage, 1, totalPages);
+        UpdatePagination();
+    }
+
+    public int numResults()
+    {
+        int Count = itemsJyls?.Count() ?? 0;
+        return Count;
+    }
+
+    // 取消排序方法
+    private void 取消排序()
+    {
+        currentSortColumn = "";
+        isAscending = true;
+
+        if (itemsJyls == null)
+            return;
+        // 重置为默认排序（按日期降序，编号升序）
+        //items = items.OrderByDescending(x => x.日期).ThenBy(x => x.编号);
+        // 重置为默认排序（按编号升序）
+        itemsJyls = itemsJyls.OrderBy(x => x.流水号);
+        currentPage = 1;
+        UpdatePagination();
+    }
+
+
+    private void 重置交易搜索()
+    {
+        datestart = DateTime.Now.AddDays(-366);  //搜索开始日期
+        dateend = DateTime.Now;  //搜索结束日期
+        khid = "";    //客户ID
+        jylx = "";    //交易类型
+        czyg = "";    //操作员工
+
+    }
+
+    private void 交易流水搜索()
+    {
+        string lx = "";
+        if (jylx != "全部")
+        {
+            lx = jylx;
+        }
+
+        itemsJyls = HongtengDbCon.Db.Queryable<交易流水表>().Where(it => it.日期.Value.Date >= datestart.Date && it.日期.Value.Date <= dateend.Date)
+             .WhereIF(!string.IsNullOrEmpty(khid), it => it.客户.Contains(khid))
+             .WhereIF(!string.IsNullOrEmpty(czyg), it => it.操作员.Contains(czyg))
+             .WhereIF(!string.IsNullOrEmpty(lx), it => it.交易类型.Contains(lx))
+             .OrderByDescending(it => it.流水号).ToArray().AsQueryable();
+
+        UpdatePagination();
+    }
+
+    private async Task 下载流水Excel()
+    {
+        using (XLWorkbook workbook = new XLWorkbook())
+        {
+            IXLWorksheet worksheet = workbook.AddWorksheet("Mysheet");
+
+
+            worksheet.Cell(1, 1).Value =  "流水号";
+            worksheet.Cell(1, 2).Value =  "日期";
+            worksheet.Cell(1, 3).Value =  "客户";
+            worksheet.Cell(1, 4).Value =  "交易类型";
+            worksheet.Cell(1, 5).Value =  "工单号";
+            worksheet.Cell(1, 6).Value =  "工单日期";
+            worksheet.Cell(1, 7).Value =  "用途名称";
+            worksheet.Cell(1, 8).Value =  "摘要";
+            worksheet.Cell(1, 9).Value =  "原价";
+            worksheet.Cell(1, 10).Value = "折扣";
+            worksheet.Cell(1, 11).Value = "发生金额";
+            worksheet.Cell(1, 12).Value = "账户余额";
+            worksheet.Cell(1, 13).Value = "网点";
+            worksheet.Cell(1, 14).Value = "操作员";
+            worksheet.Cell(1, 15).Value = "收付款方式";
+            worksheet.Cell(1, 16).Value = "扣款账号";
+            worksheet.Cell(1, 17).Value = "备注";
+
+            worksheet.Row(1).Style.Font.Bold = true;
+
+            int row = 2;
+            foreach (var forzz in itemsJyls)
+            {
+
+                worksheet.Cell(row, 1).Value =  forzz.流水号.ToString();
+                worksheet.Cell(row, 2).Value =  forzz.日期;
+                worksheet.Cell(row, 3).Value =  forzz.客户;
+                worksheet.Cell(row, 4).Value =  forzz.交易类型;
+                worksheet.Cell(row, 5).Value =  forzz.工单号;
+                worksheet.Cell(row, 6).Value =  forzz.工单日期;
+                worksheet.Cell(row, 7).Value =  forzz.用途名称;
+                worksheet.Cell(row, 8).Value =  forzz.摘要;
+                worksheet.Cell(row, 9).Value =  forzz.原价;
+                worksheet.Cell(row, 10).Value = forzz.折扣;
+                worksheet.Cell(row, 11).Value = forzz.发生金额;
+                worksheet.Cell(row, 12).Value = forzz.账户余额;
+                worksheet.Cell(row, 13).Value = forzz.网点;
+                worksheet.Cell(row, 14).Value = forzz.操作员;
+                worksheet.Cell(row, 15).Value = forzz.收付款方式;
+                worksheet.Cell(row, 16).Value = forzz.扣款账号;
+                worksheet.Cell(row, 17).Value = forzz.备注;
+                row++;
+            }
+
+
+            // 创建内存流用于保存工作簿
+            using (var memoryStream = new MemoryStream())
+            {
+                // 将工作簿保存到内存流中
+                workbook.SaveAs(memoryStream);
+
+                // 重置内存流的位置，以确保从头开始读取
+                memoryStream.Position = 0;
+
+                // 这里可以将内存流进行进一步处理，例如发送为电子邮件附件或者作为API响应返回等
+                var fileName = "交易流水表" + DateTime.Now.ToString() + ".xlsx";
+
+                using var streamRef = new DotNetStreamReference(stream: memoryStream);
+
+                await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+            }
+        }
+    }
+
+    //--------------------------------账户余额----------------------------------
+    private void 查询账户余额()
+    {
+        //-----------------------加载VIP客户余额信息----------------------
+        var VIP数码未结 = HongtengDbCon.Db.Queryable<工作表_数码印刷>()
+                             .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
+                             .Where((it, cus) => it.结清 == false || it.结清 == null)
+                             .Where((it, cus) => cus.VIP客户 == true)
+                             .Select((it, cus) => new { 客户 = it.客户, 价格 = it.应收 })
+                             ;
+        var VIP后道未结 = HongtengDbCon.Db.Queryable<工作表_后道加工>()
+                             .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
+                             .Where((it, cus) => it.结清 == false || it.结清 == null)
+                             .Where((it, cus) => cus.VIP客户 == true)
+                             .Select((it, cus) => new { 客户 = it.客户, 价格 = it.应收 })
+                             ;
+        var VIPCTP未结 = HongtengDbCon.Db.Queryable<工作表_CTP输出>()
+                             .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
+                             .Where((it, cus) => it.结清 == false || it.结清 == null)
+                             .Where((it, cus) => cus.VIP客户 == true)
+                             .Select((it, cus) => new { 客户 = it.客户, 价格 = it.应收 })
+                             ;
+        var VIP菲林未结 = HongtengDbCon.Db.Queryable<工作表_菲林输出>()
+                             .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
+                             .Where((it, cus) => it.结清 == false || it.结清 == null)
+                             .Where((it, cus) => cus.VIP客户 == true)
+                             .Select((it, cus) => new { 客户 = it.客户, 价格 = it.应收 })
+                             ;
+        var VIP设计未结 = HongtengDbCon.Db.Queryable<工作表_设计制作>()
+                             .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
+                             .Where((it, cus) => it.结清 == false || it.结清 == null)
+                             .Where((it, cus) => cus.VIP客户 == true)
+                             .Select((it, cus) => new { 客户 = it.客户, 价格 = it.应收 })
+                             ;
+        var VIP彩喷未结 = HongtengDbCon.Db.Queryable<工作表_彩喷写真>()
+                             .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
+                             .Where((it, cus) => it.结清 == false || it.结清 == null)
+                             .Where((it, cus) => cus.VIP客户 == true)
+                             .Select((it, cus) => new { 客户 = it.客户, 价格 = it.应收 })
+                             ;
+        var VIP未结 = HongtengDbCon.Db.UnionAll(VIP数码未结, VIP后道未结, VIPCTP未结, VIP菲林未结, VIP设计未结, VIP彩喷未结)
+                                      .GroupBy(it => it.客户)
+                                      .Select(it => new
+                                      {
+                                          客户 = it.客户,
+                                          价格合计 = SqlFunc.AggregateSum(it.价格)
+                                      })
+                                      .ToList().AsQueryable();
+
+        var vipkh = HongtengDbCon.Db.Queryable<客户表>().Where(it => it.IsDelete == false && it.VIP客户 == true).ToList().AsQueryable();
+
+        vip汇总 = from kk in vipkh
+                join jyl in VIP未结 on kk.客户ID equals jyl.客户 into gj
+                from subJyl in gj.DefaultIfEmpty()
+                select new 客户表
+                {
+                    自动编号 = kk.自动编号,
+                    客户ID = kk.客户ID,
+                    公司名称 = kk.公司名称,
+                    联系人 = kk.联系人,
+                    手机 = kk.手机,
+                    username = kk.username,
+                    password = kk.password,
+                    地址 = kk.地址,
+                    客户类型 = kk.客户类型,
+                    备注 = kk.备注,
+                    VIP客户 = kk.VIP客户,
+                    CTP折扣率 = kk.CTP折扣率,
+                    菲林折扣率 = kk.菲林折扣率,
+                    数码折扣率 = kk.数码折扣率,
+                    后加工折扣率 = kk.后加工折扣率,
+                    纯设计折扣率 = kk.纯设计折扣率,
+                    其他折扣率 = kk.其他折扣率,
+                    上期充值额 = kk.上期充值额,
+                    账户余额 = kk.账户余额,
+                    IsDelete = kk.IsDelete,
+                    未结金额 = subJyl != null ? subJyl.价格合计 ?? 0 : 0,
+                };
+
+
+    }
+
+    //------------------------------充值折扣方案---------------------------------
+    private void 折扣方案更新(充值折扣方案 p)
+    {
+        HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+    }
+
+    private void 折扣方案插一行()
+    {
+        Random random = new Random();  //随机数
+        var ddd = HongtengDbCon.Db.Insertable(new 充值折扣方案() { 优惠方案名 = "方案名",使用有效期=3653 }).ExecuteReturnEntity();
+        var dda = itemsDiscount?.ToList() ?? new List<充值折扣方案>();
+        dda.Add(ddd);
+        itemsDiscount = dda.ToArray().AsQueryable();
+    }
+    private void 刷新折扣方案()
+    {
+        itemsDiscount = HongtengDbCon.Db.Queryable<充值折扣方案>().ToArray().AsQueryable();
+    }
+
+    private void 删除折扣方案(充值折扣方案 p)
+    {
+        if (p.备注 == null)
+        {
+            HongtengDbCon.Db.Deleteable<充值折扣方案>(p).ExecuteCommand();
+            itemsDiscount = HongtengDbCon.Db.Queryable<充值折扣方案>().ToArray().AsQueryable();
+            JS.InvokeVoidAsync("alert", $"已删除{p.优惠方案名}！");
+        }
+        else
+        {
+            JS.InvokeVoidAsync("alert", $"备注有内容，删除失败！");
+        }
+
+    }
+
+    //---------------------------------自动扣款设置-----------------------------
+
+    public 自动扣款设置? timeSerCon;
+    public List<自动扣款时间设置> TimeAutoSetList = [];
+    public string? logs;
+
+    // 选中的值
+    private int selectedValue { get; set; } = 1;
+
+    bool cisRun = false;
+    private string 运行状态()
+    {
+        if (cisRun)
+        {
+            return "运行中";
+        }
+        else
+        {
+            return "已停止";
+        }
+    }
+    private string 运行状态字色()
+    {
+        if (cisRun)
+        {
+            return "color:#11aa00";
+        }
+        else
+        {
+            return "color:#ee2233";
+        }
+    }
+    private string 运行状态底色()
+    {
+        if (cisRun)
+        {
+            return "background-color:#ccffcc";
+        }
+        else
+        {
+            return "background-color:#ffbbbb";
+        }
+    }
+
+
+
+    private void 新建每日执行时间()
+    {
+        var ddd = HongtengDbCon.Db.Insertable(new 自动扣款时间设置() { ExeTimeOnly = new(23, 59, 59) }).ExecuteReturnEntity();
+        TimeAutoSetList.Add(ddd);
+    }
+    private void 更新时间(自动扣款时间设置 p)
+    {
+        HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+    }
+    private void 删除时间(自动扣款时间设置 p)
+    {
+        HongtengDbCon.Db.Deleteable<自动扣款时间设置>(new 自动扣款时间设置() { Id = p.Id }).ExecuteCommand();
+        TimeAutoSetList.RemoveAll(it => it.Id == p.Id);
+    }
+    private void 排序时间()
+    {
+        TimeAutoSetList.Sort((a, b) => a.ExeTime.CompareTo(b.ExeTime));
+    }
+
+
+    private void SaveConfig()
+    {
+
+        timeSerCon.ExecuteSet = selectedValue;
+        // 更新配置到数据库
+        HongtengDbCon.Db.Updateable(timeSerCon).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+
+    }
+
+    private async Task 启动()
+    {
+        if (selectedValue == 1)
+        {
+            SaveConfig();
+
+            cisRun = true;
+            StateHasChanged(); // 立即刷新UI
+
+            //自动扣款工作
+            BackgroundService.StartService(1);
+
+            logs = ($"执行一次已启动于: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            Logger.LogInformation("用户启动了一次后台执行服务");
+            await WriteToFileAsync(logs);
+
+            await Task.Delay(2000); // 单位：毫秒
+            cisRun = false;
+            StateHasChanged();
+
+        }
+        if (selectedValue == 2)
+        {
+            timeSerCon.ExTimeSec = timeSerCon.ExeTime / (double)TimeSpan.TicksPerSecond;
+            Program.timeSpan = timeSerCon.ExTimeSec ?? 28800;
+            Program.lastTime = DateTime.Now;
+            Program.nextTime = DateTime.Now.AddSeconds(Program.timeSpan);
+            timeSerCon.LastTime = Program.lastTime;
+            timeSerCon.NextTime = Program.nextTime;
+            timeSerCon.ExecuteSet = selectedValue;
+            HongtengDbCon.Db.Updateable(timeSerCon).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+
+            //启动服务
+            try
+            {
+                BackgroundService.StartService(2);
+                logs = ($"间隔执行服务已启动于: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                Logger.LogInformation("用户启动了后台间隔执行服务");
+                cisRun = true;
+                await WriteToFileAsync(logs);
+            }
+            catch (Exception ex)
+            {
+                logs = ($"启动间隔执行服务失败: {ex.Message}");
+                Logger.LogError(ex, "启动间隔执行服务时发生错误");
+                await WriteToFileAsync(logs);
+            }
+
+        }
+        if (selectedValue == 3)
+        {
+            DateTime now = DateTime.Now;
+            var timeList = HongtengDbCon.Db.Queryable<自动扣款时间设置>().ToList().OrderBy(it => it.ExeTime);
+            var time = timeList
+                .Select(it => (TimeSpan?)it.ExeTimeOnly.ToTimeSpan())
+                .FirstOrDefault(it => it > now.TimeOfDay, null);
+            if (time is not null)
+            {
+                //算出时间差
+                DateTime newDateWithMidnight = now.Date + time.Value;
+                timeSerCon.ExTimeSec = (newDateWithMidnight - now).TotalSeconds;
+
+            }
+            else if (timeList.Any())
+            {
+                //算出明天第一个时间与现在之间的时间差
+                DateTime newDateWithMidnight = now.Date.AddDays(1) + (timeList.First()?.ExeTimeOnly.ToTimeSpan() ?? TimeSpan.Zero);
+                timeSerCon.ExTimeSec = (newDateWithMidnight - now).TotalSeconds;
+
+            }
+
+            Program.timeSpan = timeSerCon.ExTimeSec ?? 28800;
+            Program.lastTime = now;
+            Program.nextTime = now.AddSeconds(Program.timeSpan);
+            timeSerCon.LastTime = Program.lastTime;
+            timeSerCon.NextTime = Program.nextTime;
+            timeSerCon.ExecuteSet = selectedValue;
+            HongtengDbCon.Db.Updateable(timeSerCon).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+
+            //启动服务
+            try
+            {
+                BackgroundService.StartService(3);
+                logs = ($"定时执行服务已启动于: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                Logger.LogInformation("用户启动了后台定时执行服务");
+                cisRun = true;
+                await WriteToFileAsync(logs);
+            }
+            catch (Exception ex)
+            {
+                logs = ($"启动定时执行服务失败: {ex.Message}");
+                Logger.LogError(ex, "启动定时执行服务时发生错误");
+                await WriteToFileAsync(logs);
+            }
+
+        }
+    }
+
+    private async Task 停止()
+    {
+        try
+        {
+            BackgroundService.StopService();
+            logs = ($"服务已停止于: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            Logger.LogInformation("用户停止了后台服务");
+            cisRun = false;
+            await WriteToFileAsync(logs);
+        }
+        catch (Exception ex)
+        {
+            logs = ($"停止服务失败: {ex.Message}");
+            Logger.LogError(ex, "停止服务时发生错误");
+            await WriteToFileAsync(logs);
+        }
+    }
+
+    private async Task WriteToFileAsync(string message)
+    {
+
+        //写入文件
+        var content = $"{DateTime.Now}: {message}";
+        var filePath = Path.Combine(BackgroundService.Env.ContentRootPath, "logs.txt");
+
+        await File.AppendAllLinesAsync(filePath, new[] { content });
+    }
+
+
+
+    // --------------------------------扣款查询相关-----------------------------
+    private int 扣款查询Page = 1;
+    private int 扣款查询pageSize = 30;
+    private int 扣款查询totalPages = 1;
+    private int 扣款查询gotoPage = 1;
+    private dbModel[]? 扣款查询PageItems;
+    private bool 全选 = false;
+
+    private void 修改全选()
+    {
+        if (全选)
+        {
+            foreach (var item in vip未结)
+            {
+                item.临时选定 = true;
+            }
+        }
+        else
+        {
+            foreach (var item in vip未结)
+            {
+                item.临时选定 = false;
+            }
+        }
+    }
+    // ---------------------------------分页方法------------------------------
+    private void 扣款查询UpdatePagination()
+    {
+        if (vip未结 == null || !vip未结.Any())
+        {
+            totalPages = 1;
+            扣款查询PageItems = Array.Empty<dbModel>();
+            return;
+        }
+
+        // 计算总页数
+        int 扣款查询totalCount = vip未结.Count();
+        扣款查询totalPages = (int)Math.Ceiling(扣款查询totalCount / (double)扣款查询pageSize);
+
+        // 确保当前页在有效范围内
+        扣款查询Page = Math.Clamp(扣款查询Page, 1, 扣款查询totalPages);
+
+        // 获取当前页数据
+        扣款查询PageItems = vip未结
+            .Skip((扣款查询Page - 1) * 扣款查询pageSize)
+            .Take(扣款查询pageSize)
+            .ToArray();
+    }
+
+    private void 扣款查询首页()
+    {
+        扣款查询Page = 1;
+        扣款查询UpdatePagination();
+    }
+
+    private void 扣款查询上一页()
+    {
+        扣款查询Page = Math.Max(1, 扣款查询Page - 1);
+        扣款查询UpdatePagination();
+    }
+
+    private void 扣款查询下一页()
+    {
+        扣款查询Page = Math.Min(扣款查询totalPages, 扣款查询Page + 1);
+        扣款查询UpdatePagination();
+    }
+
+    private void 扣款查询末页()
+    {
+        扣款查询Page = 扣款查询totalPages;
+        扣款查询UpdatePagination();
+    }
+
+    private void 扣款查询跳转()
+    {
+        扣款查询Page = Math.Clamp(扣款查询gotoPage, 1, 扣款查询totalPages);
+        扣款查询UpdatePagination();
+    }
+
+    public int 扣款查询条数()
+    {
+        int Count = vip未结?.Count() ?? 0;
+        return Count;
+    }
+
+    public int 选中条数()
+    {
+        int Count = vip未结?.Count(it=> it.临时选定==true) ?? 0;
+        return Count;
+    }
+
+    //----------------------------扣款工单查询-------------------------------
+    private string? 扣款客户名;
+    private string? 分类名;
+    private string? 扣款工作名;
+    private DateTime 扣款开始日期 = DateTime.Now.AddDays(-32);
+    private DateTime 扣款截止日期 = DateTime.Now.AddDays(-1);
+    private void 扣款工单查询()
+    {
+
+        DateTime d1 = 扣款开始日期;
+        DateTime d2 = 扣款截止日期;
+
+        if (扣款截止日期 < 扣款开始日期)
+        {
+            d1 = 扣款截止日期;
+            d2 = 扣款开始日期;
+        }
+
+
+        var q1 = HongtengDbCon.Db.Queryable<工作表_数码印刷>()
+                .WhereIF(true, it => it.输出日期.Value.Date >= d1.Date && it.输出日期.Value.Date <= d2.Date)
+                .WhereIF(!string.IsNullOrEmpty(扣款客户名), it => it.客户.Contains(扣款客户名))
+                .WhereIF(!string.IsNullOrEmpty(扣款工作名), it => it.文件或工作名.Contains(扣款工作名))
+                .Select(it => new dbModel { 分类 = "印刷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.纸张类型, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.印刷费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收印制费, 结算状态 = it.结算状态 });
+
+        var q2 = HongtengDbCon.Db.Queryable<工作表_后道加工>()
+                .WhereIF(true, it => it.日期.Value.Date >= d1.Date && it.日期.Value.Date <= d2.Date)
+                .WhereIF(!string.IsNullOrEmpty(扣款客户名), it => it.客户.Contains(扣款客户名))
+                .WhereIF(!string.IsNullOrEmpty(扣款工作名), it => it.文件或工作名.Contains(扣款工作名))
+                .Select(it => new dbModel { 分类 = "后道", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.数量, 规格 = it.输出设备, 价格 = it.应收, 要求说明 = it.要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.加工费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收加工费, 结算状态 = it.结算状态 });
+
+        var q3 = HongtengDbCon.Db.Queryable<工作表_CTP输出>()
+                .WhereIF(true, it => it.输出日期.Value.Date >= d1.Date && it.输出日期.Value.Date <= d2.Date)
+                .WhereIF(!string.IsNullOrEmpty(扣款客户名), it => it.客户.Contains(扣款客户名))
+                .WhereIF(!string.IsNullOrEmpty(扣款工作名), it => it.文件或工作名.Contains(扣款工作名))
+                .Select(it => new dbModel { 分类 = "CTP", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.CTP板材型号, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已输出, 附加设计费 = it.设计制作费, 主费用 = it.版费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收CTP费, 结算状态 = it.结算状态 });
+
+        var q4 = HongtengDbCon.Db.Queryable<工作表_菲林输出>()
+               .WhereIF(true, it => it.输出日期.Value.Date >= d1.Date && it.输出日期.Value.Date <= d2.Date)
+               .WhereIF(!string.IsNullOrEmpty(扣款客户名), it => it.客户.Contains(扣款客户名))
+               .WhereIF(!string.IsNullOrEmpty(扣款工作名), it => it.文件或工作名.Contains(扣款工作名))
+               .Select(it => new dbModel { 分类 = "菲林", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.输出方向, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 附加设计费 = it.设计制作费, 主费用 = it.菲林费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收菲林费, 结算状态 = it.结算状态 });
+
+        var q5 = HongtengDbCon.Db.Queryable<工作表_设计制作>()
+               .WhereIF(true, it => it.日期.Value.Date >= d1.Date && it.日期.Value.Date <= d2.Date)
+               .WhereIF(!string.IsNullOrEmpty(扣款客户名), it => it.客户.Contains(扣款客户名))
+               .WhereIF(!string.IsNullOrEmpty(扣款工作名), it => it.文件或工作名.Contains(扣款工作名))
+               .Select(it => new dbModel { 分类 = "设计", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.发送至, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 附加设计费 = it.设计制作费, 主费用 = it.施工费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收施工费, 结算状态 = it.结算状态 });
+
+        var q6 = HongtengDbCon.Db.Queryable<工作表_彩喷写真>()
+              .WhereIF(true, it => it.输出日期.Value.Date >= d1.Date && it.输出日期.Value.Date <= d2.Date)
+              .WhereIF(!string.IsNullOrEmpty(扣款客户名), it => it.客户.Contains(扣款客户名))
+              .WhereIF(!string.IsNullOrEmpty(扣款工作名), it => it.文件或工作名.Contains(扣款工作名))
+              .Select(it => new dbModel { 分类 = "彩喷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.规格, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.价格, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收打印费, 结算状态 = it.结算状态 });
+        List<dbModel>? list;
+        if ( 分类名 == null )
+        {
+            list = HongtengDbCon.Db.UnionAll(q1, q2, q3, q4, q5, q6).ToList();
+        }
+        else if (分类名.Contains("印刷"))
+        {
+            list = q1.ToList();
+        }
+        else if (分类名.Contains("后道"))
+        {
+            list = q2.ToList();
+        }
+        else if (分类名.Contains("CTP"))
+        {
+            list = q3.ToList();
+        }
+        else if (分类名.Contains("菲林"))
+        {
+            list = q4.ToList();
+        }
+        else if (分类名.Contains("设计"))
+        {
+            list = q5.ToList();
+        }
+        else if (分类名.Contains("彩喷"))
+        {
+            list = q6.ToList();
+        }
+        else
+            list = HongtengDbCon.Db.UnionAll(q1, q2, q3, q4, q5, q6).ToList();
+
+        vip未结 = list.AsQueryable();
+        扣款查询UpdatePagination();
+
+    }
+
+    private async Task 单条扣款(dbModel p)
+    {
+        if (AuthState == null)
+        {
+            await JS.InvokeVoidAsync("alert", $"请先登录！");
+            return;
+        }
+        string 操作员 = AuthState.UserName ?? "网络操作";
+        string 操作网点 = AuthState.BuMen ?? "网页";
+        if (p.结清 == true)
+        {
+            await JS.InvokeVoidAsync("alert", $"该工单已结清，不能重复扣款！");
+
+            return;
+        }
+        if (p.分类 == null)
+        {
+            await JS.InvokeVoidAsync("alert", $"无分类信息，不能扣款！");
+            return;
+        }
+        bool res = false;
+        res = await AutoDebit.DebitOne(p.分类, p.ID, 操作网点, 操作员);
+        if (res)
+        {
+            if (vip未结 == null)
+            {
+                return;
+            }
+            // 查询并更新
+            foreach (var item in vip未结.Where(t => t.ID == p.ID && t.分类 == p.分类))
+            {
+                item.结清 = true;
+                item.结算状态 = "扣款成功";
+            }
+            await JS.InvokeVoidAsync("alert", $"工单扣款成功！");
+        }
+        else
+        {
+
+            await JS.InvokeVoidAsync("alert", $"工单扣款失败，请检查日志！");
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+
+    private async Task 单条退款(dbModel p)
+    {
+        if (AuthState == null)
+        {
+            await JS.InvokeVoidAsync("alert", $"请先登录！");
+            return;
+        }
+        string 操作员 = AuthState.UserName ?? "网络操作";
+        string 操作网点 = AuthState.BuMen ?? "网页";
+
+        if (p.结清 == false || p.结清 == null)
+        {
+            await JS.InvokeVoidAsync("alert", $"该工单未结清，不能退款！");
+            return;
+        }
+        if (p.分类 == null)
+        {
+            await JS.InvokeVoidAsync("alert", $"无分类信息，不能退款！");
+            return;
+        }
+        bool res = false;
+        res = await AutoDebit.RefundOne(p.分类, p.ID, 操作网点, 操作员);
+        if (res)
+        {
+            if (vip未结 == null)
+            {
+                return;
+            }
+            // 查询并更新
+            foreach (var item in vip未结.Where(t => t.ID == p.ID && t.分类==p.分类))
+            {
+                item.结清 = false;
+                item.结算状态 = "已退款";
+            }
+            await JS.InvokeVoidAsync("alert", $"退款成功！");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("alert", $"退款失败，请检查日志！");
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task 批量扣款()
+    {
+        if (AuthState == null)
+        {
+            await JS.InvokeVoidAsync("alert", $"请先登录！");
+            return;
+        }
+        string 操作员 = AuthState.UserName ?? "网络操作";
+        string 操作网点 = AuthState.BuMen ?? "网页";
+        int 成功计数 = 0;
+        int 失败计数 = 0;
+        if (vip未结 == null)
+        {
+            await JS.InvokeVoidAsync("alert", $"没有可扣款的工单！");
+            return;
+        }
+        foreach (var item in vip未结.Where(t => t.临时选定 == true))
+        {
+            if (item.结清 == true)
+            {
+                continue;
+            }
+            if (item.分类 == null)
+            {
+                continue;
+            }
+            bool res = false;
+            res = await AutoDebit.DebitOne(item.分类, item.ID, 操作网点, 操作员);
+            if (res)
+            {
+
+                item.结清 = true;
+                item.结算状态 = "扣款成功";
+                item.临时选定 = false; // 清除选中状态
+                成功计数++;
+
+            }
+            else
+            {
+                item.结算状态 = "失败，没有扣款";
+                失败计数++;
+            }
+            
+        }
+        await JS.InvokeVoidAsync("alert", $"批量扣款已完成，\n 成功{成功计数}条，失败{失败计数}条\n 结果请看“结算状态”列。");
+        await InvokeAsync(StateHasChanged);
+    }
+
+
+
+
+
+
+}

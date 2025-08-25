@@ -1,0 +1,28 @@
+﻿@page "/Account/Logout"
+
+
+@inject NavigationManager NavigationManager
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+
+<PageTitle>Log out</PageTitle>
+
+<h1>登出</h1>
+
+@code {
+   
+    protected override async Task OnInitializedAsync()
+    {
+        await localStorage.RemoveItemAsync("UserName");
+        await localStorage.RemoveItemAsync("Phone");
+        await localStorage.RemoveItemAsync("Password");
+      
+        //NavigationManager.NavigateTo("/Login",true);
+
+        var uri = new Uri(NavigationManager.Uri);
+        var ReturnUrl = System.Web.HttpUtility.ParseQueryString(uri.Query)["ReturnUrl"];
+        NavigationManager.NavigateTo(string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl);
+
+    }
+
+         
+}

@@ -1,0 +1,53 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inherits LayoutComponentBase
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-3">
+            <div class="top-right">
+                <AccountLayout />
+                <div class="aboutclass">
+                    <NavLink href="About">
+                        关于
+                    </NavLink>
+                </div>
+            </div>
+        </div>
+
+        <article class="content px-2  bgcolor">
+            @Body
+        </article>
+        <footer>
+            <p>宏腾管理系统 &copy; 2026 | 安全稳定 · 高效便捷</p>
+        </footer>
+    </main>
+</div>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>
+
+@code{
+
+    async Task LogOut()
+    {
+        //用户名写入存储
+        await localStorage.RemoveItemAsync("UserName");
+
+        //NavigationManager.NavigateTo("/Login",true);
+
+        NavigationManager.NavigateTo("/", true);
+
+    }
+
+}

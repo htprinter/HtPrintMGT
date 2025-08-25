@@ -1,0 +1,45 @@
+﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<div>
+    
+
+    <main>
+        <div>
+            <button @onclick="LogOut">Home</button>
+        </div>
+
+         <div>
+            @Body
+        </div>
+    </main>
+</div>
+
+@code {
+
+    async Task LogOut()
+
+    {
+
+        //用户名写入存储
+
+        //await localStorage.RemoveItemAsync("UserName");
+
+        //NavigationManager.NavigateTo("/Login",true);
+
+        NavigationManager.NavigateTo("/", true);
+
+
+
+        await InvokeAsync(StateHasChanged);
+
+
+
+    }
+
+}

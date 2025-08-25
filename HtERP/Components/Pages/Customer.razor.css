@@ -1,0 +1,238 @@
+﻿::deep .quickgrid[theme=corporate] {
+    font-family: 'Microsoft YaHei', SimHei, Sans Serif;
+    color: #0e3973;
+}
+
+    ::deep .quickgrid[theme=corporate] .col-title {
+        gap: 0.4rem; /* Separate the sort indicator from title text */
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    ::deep .quickgrid[theme=corporate] .sort-indicator {
+        color: blue;
+    }
+
+    ::deep .quickgrid[theme=corporate] button.col-title:hover, ::deep .quickgrid[theme=corporate] .col-options-button:hover {
+        background-color: #62adff;
+    }
+
+    ::deep .quickgrid[theme=corporate] button.col-title:active, ::deep .quickgrid[theme=corporate] .col-options-button:active {
+        background-color: #d9f2a9;
+    }
+
+    ::deep .quickgrid[theme=corporate].table > :not(caption) > * > * {
+        padding: 0rem 0rem;
+    }
+
+/* Sticky header while scrolling */
+::deep thead {
+    position: sticky;
+    top: 0;
+    background-color: #d8d8d8;
+    outline: 1px solid gray;
+    z-index: 1;
+}
+
+/* 行间隔深浅条纹效果 */
+::deep tbody tr {
+    background-color: rgb(120, 138, 172, 0.05);
+}
+
+    ::deep tbody tr:nth-child(even) {
+        background: rgb(248, 255, 250, 0.50);
+    }
+
+/* 表格 样式 */
+::deep tbody td {
+    border-right-color: rgb(20, 38, 72, 0.1);
+    border-right-width: 1px;
+}
+
+/* 输入框 样式 */
+::deep tbody input {
+    border: 0px;
+    background-color: rgb(255, 255, 255, 0.5);
+    width: 100%;
+}
+
+
+/* 输入框 number 样式 */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+
+
+/* ------------------------客户编辑弹窗------------------------ */
+.edit-dialog {
+    border: 1px solid #999999; /* 定义边框样式 */
+    border-radius: 10px; /* 定义圆角大小 */
+    background-color: #fefefe;
+    overflow: hidden;
+    z-index: 9;
+    position: fixed;
+    width: 780px;
+    height: 398px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    user-select: none; /* 防止拖动时选中文本 */
+}
+
+.editdialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background-color: #f1f1f1;
+    border-bottom: 1px solid #ddd;
+    height: 30px;
+}
+
+.editdialog-title {
+    font-weight: bold;
+}
+
+.editclose-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #999;
+}
+
+    .editclose-btn:hover {
+        color: #333;
+    }
+
+
+
+.card-body {
+    padding: 15px;
+    background: #f9f9f9;
+}
+
+.form-section {
+    margin-bottom: 10px;
+    background: white;
+    padding: 10px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.section-title {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    margin-top: 0;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.discount-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+}
+
+.form-group {
+    margin-bottom: 5px;
+}
+
+label {
+    display: block;
+    margin-bottom: 3px;
+    font-weight: 500;
+    color: #555;
+}
+
+.form-control {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+.form-value {
+    padding: 5px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #eee;
+}
+
+.btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: #3498db;
+    color: white;
+}
+
+.btn-secondary {
+    background: #95a5a6;
+    color: white;
+}
+
+.btn-warning {
+    background: #f39c12;
+    color: white;
+}
+
+.btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+
+.table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+}
+
+    .table thead th {
+        background-color: var(--medium-gray);
+        color: white;
+        font-weight: 500;
+        padding: 3px 5px;
+    }
+
+    .table tbody td {
+        padding: 3px 5px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(52, 152, 219, 0.05);
+    }
+
+.table-responsive {
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}

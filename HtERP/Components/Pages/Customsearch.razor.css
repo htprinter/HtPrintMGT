@@ -1,0 +1,56 @@
+﻿::deep .quickgrid[theme=corporate] {
+    font-family: 'Microsoft YaHei', SimHei, Sans Serif;
+    font-size: 0.8em;
+    color: #0e3973;
+}
+
+    ::deep .quickgrid[theme=corporate] .col-title {
+        gap: 0.4rem; /* Separate the sort indicator from title text */
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    ::deep .quickgrid[theme=corporate] .sort-indicator {
+        color: blue;
+    }
+
+    ::deep .quickgrid[theme=corporate] button.col-title:hover, ::deep .quickgrid[theme=corporate] .col-options-button:hover {
+        background-color: #62adff;
+    }
+
+    ::deep .quickgrid[theme=corporate] button.col-title:active, ::deep .quickgrid[theme=corporate] .col-options-button:active {
+        background-color: #d9f2a9;
+    }
+
+    ::deep .quickgrid[theme=corporate].table > :not(caption) > * > * {
+        padding: 0rem 0rem;
+    }
+
+/* ----------Sticky header while scrolling滚动时标题栏保持顶部显示--------------- */
+::deep thead {
+    position: sticky;
+    top: 48px;
+    background-color: #dadbdb;
+    outline: 1px solid gray;
+    z-index: 1;
+}
+
+@media (max-width: 640.98px) {
+    ::deep thead {
+        position: sticky;
+        top: 0px;
+        background-color: #d8d8d8;
+        outline: 1px solid gray;
+        z-index: 1;
+    }
+}
+
+
+/* 行间隔深浅条纹效果 */
+::deep tbody tr {
+    background-color: rgb(128, 150, 180, 0.05);
+}
+
+    ::deep tbody tr:nth-child(even) {
+        background: rgb(255, 255, 250, 1);
+    }

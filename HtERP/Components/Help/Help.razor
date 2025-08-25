@@ -1,0 +1,56 @@
+﻿@page "/help"
+
+<h3>使用教程</h3>
+<hr />
+<div>
+	<h4>安装步序：</h4>
+	<p>1. 减压。</p>
+	<p>2. 数据库需要自己安装好，然后本软件目录下的“appsettings.json”里配置数据库连接。默认是使用微软的本地SQL服务，另外测试过MsSQL Server，和MySQL这两种数据库均可使用。</p>
+	<p>3. 在appsettings.Production.json文件里配置网页端口号。默认端口号是5002，5003。</p>
+	<p>4.运行主程序HtERP.exe，然后使用浏览器访问系统，本机可以通过地址 https://localhost:5003/ 或 https://127.0.0.1:5003/ 访问管理系统。</p>
+	<p>已知问题：如在Win7上报 Https 错误，可以把appsettings.Production.json文件里的 https 部分删除。</p>
+	<hr />
+	<h4>数据连接字符串写法：</h4>
+	<p>Ms SQL Server EXPRESS: "server=服务器地址\\SQLEXPRESS;uid=用户名;pwd=密码;database=数据库名;Encrypt=True;Trust Server Certificate=True",</p>
+	<p>Ms SQL Server: "server=服务器地址;uid=用户名;pwd=密码;database=数据库名;Encrypt=True;Trust Server Certificate=True",</p>
+	<p>微软本地SQL: "Server=(localdb)\\mssqllocaldb;Database=数据库名;Trusted_Connection=True;MultipleActiveResultSets=true",</p>
+	<p>MySql数据库: "server=服务器地址;Database=数据库名;Uid=用户名;Pwd=密码",</p>
+	<p>前三个数据的DbType: "SqlServer"</p>
+	<p>MySql的DbType: "MySql"</p>
+	<hr />
+</div>
+<div>
+	<h4>填单界面</h4>
+	<img src="/image/help/readme-1.png" alt="readme-1" />
+	<p>1. 主菜单。</p>
+	<p>2. 关闭所有后道加工填单的显示。</p>
+	<p>3. 按列标题可以按当今列排序，拖动标题间隔可以调整列宽。</p>
+	<p>4. 打开和关闭后道加工填单的显示。</p>
+	<p>5. 为当前印刷单新建一个后道加工单。</p>
+	<p>6. 新建印刷单。</p>
+	<p>7. 删除印刷单。</p>
+	<p>8. 显示当前登录员工，点击进入自己的信息修改页面。</p>
+	<hr />
+</div>
+<div>
+	<h4>结账收款界面</h4>
+	<img src="/image/help/readme-2.png" alt="readme-2" />
+	<p>1. 收款单。</p>
+	<p>2. 编辑收款单。</p>
+	<p>3. 未结算查询。</p>
+	<hr />
+</div>
+<div>
+	<h4>充值管理界面</h4>
+	<h5>充值</h5>
+	<img src="/image/help/readme-3.png" alt="readme-3" />
+	<h5>扣款</h5>
+	<img src="/image/help/readme-4.png" alt="readme-4" />
+	<p>1. 自动扣款状态显示。</p>
+	<p>2. 自动扣款设置，这里只有超级管理员能够显示。</p>
+	<p>3. 手动扣款和退款，这里需要管理员才能显示。</p>
+	<hr />
+</div>
+@code {
+
+}

@@ -1,0 +1,166 @@
+@page "/"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using HtERP.Data
+@using SqlSugar
+
+<AuthorizeView>
+    <Authorized>
+        <h3>你好! @AuthState?.User?.Identity?.Name</h3>
+        <hr />
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="Customsearch">
+                <button class="w-100 btn btn-lg btn-primary"><img src="/image/svg-white/White_binoculars-fill.svg" width="22" class="bi" aria-hidden="true" />综合查询</button>
+            </NavLink>
+        </div>
+        <hr />
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="HtDesignList">
+                <button class="w-100 btn btn-lg btn-primary"><img src="/image/svg-white/White_pencil-square-fill.svg" width="22" class="bi" aria-hidden="true" />设计制作</button>
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="HtFilmList">
+                <button class="w-100 btn btn-lg btn-primary"><img src="/image/svg-white/White_receipt-fill.svg" width="22" class="bi" aria-hidden="true" />菲林输出</button>
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="HtCtpList">
+                <button class="w-100 btn btn-lg btn-primary"><img src="/image/svg-white/White_folder2-fill.svg" width="22" class="bi" aria-hidden="true" />CTP制版</button>
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="htphotolist">
+                <button class="w-100 btn btn-lg btn-primary"><img src="/image/svg-white/White_printerphoto-fill.svg" width="22" class="bi" aria-hidden="true" />彩喷写真</button>
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="htprintlist">
+                <button class="w-100 btn btn-lg btn-primary"><img src="/image/svg-white/White_printerpro-fill.svg" width="22" class="bi" aria-hidden="true" />印刷管理</button>
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="HtProcessing">
+                <button class="w-100 btn btn-lg btn-primary"><img src="/image/svg-white/White_layer-backward.svg" width="22" class="bi" aria-hidden="true" />后道工序</button>
+            </NavLink>
+        </div>
+        <hr />
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="HtReceipt">
+                <button class="w-100 btn btn-lg btn-primary"><img src="/image/svg-white/White_inboxes2-fill.svg" width="22" class="bi" aria-hidden="true" />收款查询</button>
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="HtCharge">
+                <button class="w-100 btn btn-lg btn-primary"><img src="/image/svg-white/White_cash.svg" width="22" class="bi" aria-hidden="true" />充值管理</button>
+            </NavLink>
+        </div>
+        @if (yesOrNoAdmin())
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="Expenditure">
+                    <button class="w-100 btn btn-lg btn-primary"><img src="/image/svg-white/White_journals-fill.svg" width="22" class="bi" aria-hidden="true" />支出登记</button>
+                </NavLink>
+            </div>
+        }
+    
+    </Authorized>
+    <NotAuthorized>
+        <h1>宏腾印刷服务</h1>
+        <hr />
+        <h3>尚未登录☹️</h3>
+        <h4>宏腾设计制版管理系统，<br>员工登录后使用。</h4>
+        <p>初始超级管理员登录电话“123456789”，登录密码“666888”</p>
+        <p>普通管理员登录电话“222222”，登录密码“666888”</p>
+        <p>普通员工登录电话“333333”，登录密码“666888”</p>
+        <hr />
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="Account/Login">
+                <button class="w-100 btn btn-lg btn-primary">登 录</button>
+            </NavLink>
+        </div>
+        <hr />
+        @if (HtTestdb.db.Ado.IsValidConnection())
+        {
+            @if (!HtTestdb.db.DbMaintenance.IsAnyTable("员工", false))
+            {
+                <h4>如是第一次使用请配置数据库</h4>
+                <p>你可以手动设置appsettings.json里的数据库连接，或让系统自动生成一个本地测试数据库。</p>
+                <p>系统默认生成本地MsSqlLocalDB，如果你电脑上没有此服务请先安装。</p>
+                <div>
+                    <a href="https://learn.microsoft.com/zh-cn/sql/database-engine/configure-windows/sql-server-express-localdb?view=sql-server-ver16" target="_blank">关于MsSqlLocalDB的说明</a>
+                </div>
+                <div class="nav-link">
+                    <button class="w-100 btn btn-lg btn-primary" @onclick="Initialize">初始化数据</button>
+                </div>
+                <h5 style="color:blue"> <strong>@aaa</strong></h5>
+                <hr />
+            }
+        }
+        else
+        {
+            <h4>如是第一次使用请配置数据库</h4>
+            <p>你可以手动设置appsettings.json里的数据库连接，或让系统自动生成一个本地测试数据库。</p>
+            <p>系统默认生成本地MsSqlLocalDB，如果你电脑上没有此服务请先安装。</p>
+            <div>
+                <a href="https://learn.microsoft.com/zh-cn/sql/database-engine/configure-windows/sql-server-express-localdb?view=sql-server-ver16" target="_blank">关于MsSqlLocalDB的说明</a>
+            </div>
+            <div class="nav-link">
+                <button class="btn btn-lg btn-primary" @onclick="NewDatabase">创建数据库</button>
+                <button class="btn btn-lg btn-primary" @onclick="Initialize">初始化数据</button>
+            </div>
+            <h5 style="color:blue"> <strong>@aaa</strong></h5>
+            <hr />
+        }
+        
+        
+    </NotAuthorized>
+</AuthorizeView>
+<div>
+    <NavLink class="nav-link" href="help">
+        使用手册
+    </NavLink>
+</div>
+@code {
+    string aaa = "";
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+    AuthState? AuthState;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = authenticationState?.Result as AuthState;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void NewDatabase()
+    {
+        CreateData createData = new CreateData();
+        aaa = createData.CreateDatabase();
+    }
+
+    public void Initialize()
+    {
+        CreateData createData = new CreateData();
+        aaa = createData.InitializeData();
+    }
+
+    bool isAdmin = false;
+    private bool yesOrNoAdmin()
+    {
+        AuthState = authenticationState?.Result as AuthState;
+        if (AuthState == null)
+        {
+            isAdmin = false;
+            return isAdmin;
+        }
+        else
+        {
+            isAdmin = AuthState.IsAdmin ?? false;
+            return isAdmin;
+        }
+
+    }
+}

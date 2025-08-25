@@ -1,0 +1,107 @@
+﻿/* 上面表格 */
+::deep .quickgrid[theme=corporate] {
+    font-family: 'Microsoft YaHei', SimHei, Sans Serif;
+    font-size: 0.8em;
+    color: #0e3973;
+}
+
+::deep .quickgrid[theme=corporate] .col-title {
+    gap: 0.4rem; /* Separate the sort indicator from title text */
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+::deep .quickgrid[theme=corporate] .sort-indicator {
+    color: blue;
+}
+
+::deep .quickgrid[theme=corporate] button.col-title:hover, ::deep .quickgrid[theme=corporate] .col-options-button:hover {
+    background-color: #62adff;
+}
+
+::deep .quickgrid[theme=corporate] button.col-title:active, ::deep .quickgrid[theme=corporate] .col-options-button:active {
+    background-color: #d9f2a9;
+}
+
+::deep .quickgrid[theme=corporate].table > :not(caption) > * > * {
+    padding: 0rem 0rem;
+}
+
+/* 下面表格 */
+::deep .quickgrid[theme=intimate] {
+    font-family: 'Microsoft YaHei', SimHei, Sans Serif;
+    font-size: 0.9em;
+    color: #1e3933;
+}
+
+    ::deep .quickgrid[theme=intimate] .col-title {
+        gap: 0.4rem; /* Separate the sort indicator from title text */
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    ::deep .quickgrid[theme=intimate] .sort-indicator {
+        color: blue;
+    }
+
+    ::deep .quickgrid[theme=intimate] button.col-title:hover, ::deep .quickgrid[theme=corporate] .col-options-button:hover {
+        background-color: #62adff;
+    }
+
+    ::deep .quickgrid[theme=intimate] button.col-title:active, ::deep .quickgrid[theme=corporate] .col-options-button:active {
+        background-color: #f9f2f9;
+    }
+
+    ::deep .quickgrid[theme=intimate].table > :not(caption) > * > * {
+        padding: 0rem 0rem;
+    }
+
+
+/* Sticky header while scrolling */
+::deep thead {
+    position: sticky;
+    top: 0;
+    background-color: #d8d8d8;
+    outline: 1px solid gray;
+    z-index: 1;
+}
+
+
+/* 行间隔深浅条纹效果 */
+::deep tbody tr {
+    background-color: rgb(120, 138, 172, 0.05);
+}
+
+    ::deep tbody tr:nth-child(even) {
+        background: rgb(248, 255, 250, 0.50);
+    }
+
+/* 表格 样式 */
+::deep tbody td {
+    border-right-color: rgb(20, 38, 72, 0.1);
+    border-right-width: 1px;
+}
+
+/* 输入框 样式 */
+::deep tbody input {
+    border: 0px;
+    background-color: rgb(255, 255, 255, 0.5);
+    width: 100%;
+}
+
+
+/* 圆角边框 */
+.rounded-corner-box {
+    border: 2px solid #bbbbbb; /* 边框宽度和颜色 */
+    border-radius: 5px; /* 圆角的半径 */
+    padding: 2px; /* 内边距 */
+    /* width: 200px; /* 盒子宽度 */
+    /* height: 100px;  /* 盒子高度 */
+    /* text-align: center; /* 文本居中 */
+}
+
+.upbox {
+    height: 240px; /* 盒子高度 */
+    overflow-x: unset;
+    overflow-y: auto;
+}

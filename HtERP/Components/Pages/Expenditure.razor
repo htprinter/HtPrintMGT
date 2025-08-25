@@ -1,0 +1,497 @@
+﻿@page "/Expenditure"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using HtERP.Data
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using ClosedXML.Excel
+@inject IJSRuntime JSRuntime
+@inject IJSRuntime JS
+
+@attribute [Authorize]
+
+<PageTitle>Expenditure</PageTitle>
+
+<div>
+	<strong><font size="5" style="color:#016f5e">支出登记</font></strong>
+	<em>（共: <strong>@numResults() </strong>条, 合计: <strong>@sumResults() </strong>元）</em>
+	每页显示条数:
+	<select @bind="@pagination.ItemsPerPage">
+		<option>50</option>
+		<option>200</option>
+		<option>500</option>
+		<option>1000</option>
+		<option>2000</option>
+	</select>
+	<button class="btn btn-primary" @onclick="DownloadExcel">下载Excel</button>
+	<button class="btn btn-primary" @onclick="查询本月">本月</button>
+	<button class="btn btn-primary" @onclick="查询上月">上月</button>
+	<button class="btn btn-primary" @onclick="查询本年">本年</button>
+	<button class="btn btn-primary" @onclick="查询去年">去年</button>
+	<label for="upload-excel" class="btn btn-primary">导入数据</label>
+	     <InputFile id="upload-excel" OnChange="iLoadFiles" style="display: none" />
+	
+	<em style="color:red; font-size:x-large">@ilord</em>
+</div>
+
+
+<div>
+	<input @bind="date1" id="tt" type="date" style="width:120px" />
+	<input @bind="date2" id="tt" type="date" style="width:120px" />
+	<input type="search" autofocus @bind="nameFilter" placeholder="部门..." style="width:120px" />
+	<input type="search" autofocus @bind="nameFilter1" placeholder="类别..." style="width:120px" />
+	<input type="search" autofocus @bind="nameFilter3" placeholder="收款单位..." style="width:120px" />
+	<input type="search" autofocus @bind="nameFilter2" placeholder="名称..." style="width:120px" />
+	<input type="search" autofocus @bind="nameFilter4" placeholder="支付方式..." style="width:120px" />
+	<input type="search" autofocus @bind="nameFilter5" placeholder="规格..." style="width:120px" />
+	<button class="btn btn-primary" @onclick="查询">查询</button>
+	<button class="btn btn-primary" @onclick="清空搜索项">清空搜索项</button>
+</div>
+
+
+@if (forecasts == null)
+{
+	<p><em>Loading...</em></p>
+}
+else
+{
+	<div>
+		<QuickGrid Items="@items" Theme="corporate" class="table" Pagination="@pagination">
+
+			<PropertyColumn Property="@(c => c.编号)" Sortable="true" Align="Align.Right" Title="ID" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
+
+			<TemplateColumn Title="日期" SortBy="@日期排序" Align="Align.Center">
+				<input id="date1" type="date" @bind="@(context.日期)" style="width:118px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+			</TemplateColumn>
+
+			<TemplateColumn Title="支出部门" SortBy="@部门排序" Align="Align.Center">
+
+				<input type="text" @bind="@(context.支出部门)"  list="bmoptions" style="width:88px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+
+			</TemplateColumn>
+
+			<TemplateColumn Title="类别" SortBy="@类别排序" Align="Align.Center">
+				<input type="text" @bind="@(context.支出类别)"  list="lboptions" style="width:122px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+
+			</TemplateColumn>
+
+			<TemplateColumn Title="收款单位" SortBy="@收款排序" Align="Align.Center">
+				<input type="text" @bind="@(context.收款单位)" style="min-width:128px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+			</TemplateColumn>
+
+			<TemplateColumn Title="名称" SortBy="@项目排序" Align="Align.Center">
+				<input type="text" @bind="@(context.支出项目说明)" style=" min-width:128px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+			</TemplateColumn>
+
+			<TemplateColumn Title="规格" Align="Align.Center">
+				<input type="text" @bind="@(context.规格)" style="width:78px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+			</TemplateColumn>
+
+			<TemplateColumn Title="单位" Align="Align.Center">
+				<input type="text" @bind="@(context.单位)" style="width:38px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+			</TemplateColumn>
+
+			<TemplateColumn Title="数量" Align="Align.Center">
+				<input type="text" @bind="@(context.数量)" style="width:58px; text-align: right" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+			</TemplateColumn>
+
+			<TemplateColumn Title="单价" Align="Align.Center">
+				<input type="number" class="priceinput"
+				style="text-align: right; width:73px"
+				value="@(context.单价?.ToString("F2") ?? "NULL")"
+				@onchange="@(e => context.单价 = decimal.TryParse(e.Value?.ToString(), out decimal d) ? d : 0)"
+				@onblur="@(() => 更新数据(context))" />
+			</TemplateColumn>
+
+			<TemplateColumn Title="支出金额" SortBy="@金额排序" Align="Align.Center">
+				<input type="number" class="priceinput"
+				style="text-align: right; width:83px"
+				value="@(context.支出金额?.ToString("F2") ?? "NULL")"
+				@onchange="@(e => context.支出金额 = decimal.TryParse(e.Value?.ToString(), out decimal d) ? d : 0)"
+				@onblur="@(() => 更新数据(context))" />
+			</TemplateColumn>
+
+			<TemplateColumn Title="支付方式" SortBy="@方式排序" Align="Align.Center">
+				<input type="text" @bind="@(context.支付方式)" style="max-width:118px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+			</TemplateColumn>
+
+			<TemplateColumn Title="票据凭证" Align="Align.Center">
+				<input type="text" @bind="@(context.票据凭证)" style="max-width:78px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+			</TemplateColumn>
+
+			<TemplateColumn Title="经办人" SortBy="@员工排序" Align="Align.Center">
+				<input type="text" @bind="@(context.经办人)" list="ygoptions" style="width:72px" class="priceinput" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+
+			</TemplateColumn>
+
+			<TemplateColumn Title="备注" Align="Align.Center">
+				<input type="text" @bind="@(context.备注)" style="max-width:88px" onblur="@(() => 更新数据(context))" disabled=@IsDisabled />
+			</TemplateColumn>
+
+			@if (!IsDisabled)
+			{
+				<TemplateColumn Title="" Align="Align.Center">
+					<button @onclick="@(() => ShowDeleteEvent(context))" style="width:50px">删除</button>
+				</TemplateColumn>
+			}
+
+		</QuickGrid>
+		<!-- 输入框下拉列表 -->
+		<datalist id="lboptions">
+			@if (lblist != null) foreach (var cc in lblist)
+				{
+					<option value="@cc.类别"></option>
+				}
+		</datalist>
+		<datalist id="bmoptions">
+			@if (bmlist != null) foreach (var bb in bmlist)
+				{
+					<option value="@bb.部门"></option>
+				}
+		</datalist>
+		<datalist id="ygoptions">
+			@if (yglist != null) foreach (var foryg in yglist)
+				{
+					<option value="@foryg.姓名"></option>
+				}
+		</datalist>
+
+		<Paginator State="@pagination" />
+	</div>
+	<p> <button class="btn btn-primary" @onclick="新插一行">新建</button></p>
+
+}
+
+@if (ShowDelete)
+{
+	<div class="custom-dialog" @onclick:stopPropagation>
+		<div class="dialog-content">
+			<h3> 是否确定要删除：</h3>
+			<h4> @(pp.编号)，@(pp.收款单位)，@(pp.支出项目说明)</h4>
+			<h4>金额： @(pp.支出金额)元，经办人：@(pp.经办人)</h4>
+			<p><button class="dialog-button" @onclick="Deleteit">确定删除</button> <button class="dialog-button" @onclick="HideDeleteEvent">取消</button></p>
+		</div>
+	</div>
+}
+
+@if (islording)
+{
+	<div class="custom-dialog">
+		
+			<div class="loader"></div>
+		
+	</div>
+}
+
+
+@code {
+	PaginationState pagination = new PaginationState { ItemsPerPage = 200 };
+
+	private bool IsDisabled { get; set; } = true; //控制input标签是否可用
+	private bool IsSupDisabled { get; set; } = true; //控制input非超级管理员不可用
+
+	[CascadingParameter]
+	private Task<AuthenticationState>? authenticationState { get; set; }
+
+	AuthState? AuthState;
+
+	string nameFilter = string.Empty;
+	string nameFilter1 = string.Empty;
+	string nameFilter2 = string.Empty;
+	string nameFilter3 = string.Empty;
+	string nameFilter4 = string.Empty;
+	string nameFilter5 = string.Empty;
+
+	DateTime date1 = DateTime.Now.AddDays(-1);
+	DateTime date2 = DateTime.Now;
+
+	private List<支出总表>? forecasts;
+	IQueryable<支出总表>? items;
+
+	GridSort<支出总表> rankSort = GridSort<支出总表>
+		.ByDescending(x => x.编号);
+
+	GridSort<支出总表> 日期排序 = GridSort<支出总表>.ByDescending(x => x.日期);
+	GridSort<支出总表> 部门排序 = GridSort<支出总表>.ByDescending(x => x.支出部门);
+	GridSort<支出总表> 类别排序 = GridSort<支出总表>.ByDescending(x => x.支出类别);
+	GridSort<支出总表> 项目排序 = GridSort<支出总表>.ByDescending(x => x.支出项目说明);
+	GridSort<支出总表> 收款排序 = GridSort<支出总表>.ByDescending(x => x.收款单位);
+	GridSort<支出总表> 员工排序 = GridSort<支出总表>.ByDescending(x => x.经办人);
+	GridSort<支出总表> 金额排序 = GridSort<支出总表>.ByDescending(x => x.支出金额);
+	GridSort<支出总表> 方式排序 = GridSort<支出总表>.ByDescending(x => x.支付方式);
+
+	public 支出部门[] bmlist;
+	public 支出类别[] lblist;
+	public 员工[] yglist;
+
+	public int numResults()
+	{
+		int Count = items.Count();
+		return Count;
+	}
+
+	public decimal? sumResults()
+	{
+		decimal? total = items.Sum(item => item.支出金额);
+		return total;
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		AuthState = authenticationState?.Result as AuthState;
+
+		//管理员可用
+		if (AuthState.IsAdmin == null | AuthState.IsAdmin == false)
+		{
+			IsDisabled = true;
+		}
+		else
+		{
+			IsDisabled = false;
+		}
+
+		//超级管理员可用
+		if (AuthState.IsAdminPro == null | AuthState.IsAdminPro == false)
+		{
+			IsSupDisabled = true;
+		}
+		else
+		{
+			IsSupDisabled = false;
+		}
+
+		forecasts = HongtengDbCon.Db.Queryable<支出总表>().Where(it => it.日期.Value.Year == DateTime.Now.Year && it.日期.Value.Month == DateTime.Now.Month).Where(it => it.IsDelete == false).ToList();
+		items = forecasts.AsQueryable();
+
+		bmlist = HongtengDbCon.Db.Queryable<支出部门>().ToArray();
+		lblist = HongtengDbCon.Db.Queryable<支出类别>().ToArray();
+		yglist = HongtengDbCon.Db.Queryable<员工>().Where(it => it.是否已离职 != true).ToArray();
+
+		await InvokeAsync(StateHasChanged);
+	}
+
+	private void 新插一行()
+	{
+
+
+		string dd = AuthState.UserName;
+		var ddd = HongtengDbCon.Db.Insertable(new 支出总表() { 经办人 = dd, 日期 = DateTime.Now, IsDelete = false }).ExecuteReturnEntity();
+
+		forecasts.Add(ddd);
+		items = forecasts.Where(it => it.IsDelete == false).AsQueryable();
+
+	}
+
+	//弹出窗口-软删除一条
+	public 支出总表? pp;
+	public bool ShowDelete { get; set; }
+	private void HideDeleteEvent()
+	{
+		ShowDelete = false;
+	}
+	private void ShowDeleteEvent(支出总表 p)
+	{
+		pp = p;
+		ShowDelete = true;
+	}
+	private void Deleteit()
+	{
+		pp.IsDelete = true;
+
+		HongtengDbCon.Db.Updateable(pp).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+
+		items = forecasts.AsQueryable().Where(it => it.IsDelete == false);
+		ShowDelete = false;
+	}
+
+	private void 更新数据(支出总表 p)
+	{
+		HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+	}
+
+	private void 查询本月()
+	{
+		forecasts = HongtengDbCon.Db.Queryable<支出总表>().Where(it => it.日期.Value.Year == DateTime.Now.Year && it.日期.Value.Month == DateTime.Now.Month).ToList();
+		items = forecasts.AsQueryable().Where(it => it.IsDelete == false);
+	}
+	private void 查询上月()
+	{
+		forecasts = HongtengDbCon.Db.Queryable<支出总表>().Where(it => it.日期.Value.Year == DateTime.Now.AddMonths(-1).Year && it.日期.Value.Month == DateTime.Now.AddMonths(-1).Month).ToList();
+		items = forecasts.AsQueryable().Where(it => it.IsDelete == false);
+	}
+	private void 查询本年()
+	{
+		forecasts = HongtengDbCon.Db.Queryable<支出总表>().Where(it => it.日期.Value.Year == DateTime.Now.Year).ToList();
+		items = forecasts.AsQueryable().Where(it => it.IsDelete == false);
+	}
+	private void 查询去年()
+	{
+		forecasts = HongtengDbCon.Db.Queryable<支出总表>().Where(it => it.日期.Value.Year == DateTime.Now.AddYears(-1).Year).ToList();
+		items = forecasts.AsQueryable().Where(it => it.IsDelete == false);
+	}
+
+
+	private void 查询()
+	{
+		DateTime d1 = date1;
+		DateTime d2 = date2;
+
+		if (date2 < date1)
+		{
+			d1 = date2;
+			d2 = date1;
+		}
+
+
+		forecasts = HongtengDbCon.Db.Queryable<支出总表>()
+				.WhereIF(true, it => it.日期.Value.Date >= d1.Date && it.日期.Value.Date <= d2.Date)
+				.WhereIF(!string.IsNullOrEmpty(nameFilter), it => it.支出部门.Contains(nameFilter))
+				.WhereIF(!string.IsNullOrEmpty(nameFilter1), it => it.支出类别.Contains(nameFilter1))
+				.WhereIF(!string.IsNullOrEmpty(nameFilter2), it => it.支出项目说明.Contains(nameFilter2))
+				.WhereIF(!string.IsNullOrEmpty(nameFilter3), it => it.收款单位.Contains(nameFilter3))
+				.WhereIF(!string.IsNullOrEmpty(nameFilter4), it => it.支付方式.Contains(nameFilter4))
+				.WhereIF(!string.IsNullOrEmpty(nameFilter5), it => it.规格.Contains(nameFilter5)).ToList();
+
+		items = forecasts.AsQueryable().Where(it => it.IsDelete == false);
+	}
+
+	private void 清空搜索项()
+	{
+
+		nameFilter = string.Empty;
+		nameFilter1 = string.Empty;
+		nameFilter2 = string.Empty;
+		nameFilter3 = string.Empty;
+		nameFilter4 = string.Empty;
+		nameFilter5 = string.Empty;
+
+	}
+
+	/// <summary>
+	/// 导出Excel文件
+	/// </summary>
+	public async Task DownloadExcel()
+	{
+		using (XLWorkbook workbook = new XLWorkbook())
+		{
+			IXLWorksheet worksheet = workbook.AddWorksheet("Mysheet");
+
+			worksheet.Cell(1, 1).Value = "编号";
+			worksheet.Cell(1, 2).Value = "日期";
+			worksheet.Cell(1, 3).Value = "支出部门";
+			worksheet.Cell(1, 4).Value = "支出类别";
+			worksheet.Cell(1, 5).Value = "收款单位";
+			worksheet.Cell(1, 6).Value = "名称";
+			worksheet.Cell(1, 7).Value = "规格";
+			worksheet.Cell(1, 8).Value = "单位";
+			worksheet.Cell(1, 9).Value = "数量";
+			worksheet.Cell(1, 10).Value = "单价";
+			worksheet.Cell(1, 11).Value = "支持金额";
+			worksheet.Cell(1, 12).Value = "支付方式";
+			worksheet.Cell(1, 13).Value = "票据凭证";
+			worksheet.Cell(1, 14).Value = "经办人";
+			worksheet.Cell(1, 15).Value = "备注";
+
+			worksheet.Row(1).Style.Font.Bold = true;
+
+			int row = 2;
+			foreach (var forzz in items)
+			{
+				worksheet.Cell(row, 1).Value = forzz.编号.ToString();
+				worksheet.Cell(row, 2).Value = forzz.日期;
+				worksheet.Cell(row, 3).Value = forzz.支出部门;
+				worksheet.Cell(row, 4).Value = forzz.支出类别;
+				worksheet.Cell(row, 5).Value = forzz.收款单位;
+				worksheet.Cell(row, 6).Value = forzz.支出项目说明;
+				worksheet.Cell(row, 7).Value = forzz.规格;
+				worksheet.Cell(row, 8).Value = forzz.单位;
+				worksheet.Cell(row, 9).Value = forzz.数量;
+				worksheet.Cell(row, 10).Value = forzz.单价;
+				worksheet.Cell(row, 11).Value = forzz.支出金额;
+				worksheet.Cell(row, 12).Value = forzz.支付方式;
+				worksheet.Cell(row, 13).Value = forzz.票据凭证;
+				worksheet.Cell(row, 14).Value = forzz.经办人;
+				worksheet.Cell(row, 15).Value = forzz.备注;
+				row++;
+			}
+
+
+			// 创建内存流用于保存工作簿
+			using (var memoryStream = new MemoryStream())
+			{
+				// 将工作簿保存到内存流中
+				workbook.SaveAs(memoryStream);
+
+				// 重置内存流的位置，以确保从头开始读取
+				memoryStream.Position = 0;
+
+				// 这里可以将内存流进行进一步处理，例如发送为电子邮件附件或者作为API响应返回等
+				var fileName = "支出 " + DateTime.Now.ToString() + ".xlsx";
+
+				using var streamRef = new DotNetStreamReference(stream: memoryStream);
+
+				await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+			}
+		}
+
+	}
+
+
+	/// <summary>
+	/// 导入Excel文件
+	/// </summary>
+	bool islording = false;
+	string? ilord = "";
+	private async Task iLoadFiles(InputFileChangeEventArgs e)
+	{
+		ilord = "";
+		islording = true;
+		try
+		{
+			var file = e.File;
+			if (file != null)
+			{
+				var ms = new MemoryStream();
+				await file.OpenReadStream().CopyToAsync(ms);
+				ms.Position = 0; // 读取后，将位置重置为流的起点。
+				var workbook = new XLWorkbook(ms); // 从流加载工作簿。
+				var worksheet = workbook.Worksheets.First(); // 获取第一个工作表。
+				foreach (IXLRow row in worksheet.Rows().Skip(1))
+				{
+					支出总表 a = new();
+					a.日期 = row.Cell(2).GetDateTime();
+					a.支出部门 = row.Cell(3).GetString();
+					a.支出类别 = row.Cell(4).GetString();
+					a.收款单位 = row.Cell(5).GetString();
+					a.支出项目说明 = row.Cell(6).GetString();
+					a.规格 = row.Cell(7).GetString();
+					a.单位 = row.Cell(8).GetString();
+					a.数量 = row.Cell(9).GetValue<float?>();
+					a.单价 = row.Cell(10).GetValue<decimal?>();
+					a.支出金额 = row.Cell(11).GetValue<decimal?>();
+					a.支付方式 = row.Cell(12).GetString();
+					a.票据凭证 = row.Cell(13).GetString();
+					a.经办人 = row.Cell(14).GetString();
+					a.备注 = row.Cell(15).GetString();
+					a.IsDelete = false;
+					var ddd = HongtengDbCon.Db.Insertable(a).ExecuteReturnEntity();
+					forecasts.Add(ddd);
+
+				}
+				items = forecasts.Where(it => it.IsDelete == false).AsQueryable();
+			}
+			else
+			{
+				ilord = "文件没载入";
+			}
+		}
+		catch (Exception ex)
+		{
+			items = forecasts.Where(it => it.IsDelete == false).AsQueryable();
+			ilord = ex.Message;
+		}
+		
+		islording = false;
+	}
+
+}

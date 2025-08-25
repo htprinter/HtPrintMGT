@@ -1,0 +1,146 @@
+﻿@page "/Account/Manage"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using SqlSugar;
+@using HtERP.Data
+@attribute [Authorize]
+
+<h2>用户信息</h2>
+<hr />
+<AuthorizeView Policy="UPMaster">
+    <Authorized>
+        <h3>员工ID:@iid</h3>
+        <h3>姓名:@AuthState?.User?.Identity?.Name</h3>
+        <h3>电话:@AuthState?.Phone</h3>
+        <h3>通过验证:@AuthState?.User?.Identity?.IsAuthenticated</h3>
+        <h3>管理员:@AuthState?.IsAdmin</h3>
+        <h3>超级管理员:@AuthState?.IsAdminPro</h3>
+        <hr />
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/Account/ChangePassword">
+                <button class="w-100 btn btn-lg btn-primary">修改密码</button>
+            </NavLink>
+        </div>
+        <table style="width:100%;">
+            <tr>
+                <td style="width:85px">QQ号：</td>
+                <td><InputText @bind-Value=@qq class="form-control" autocomplete="qqnumber" aria-required="true" placeholder="QQ number" /></td>
+                <td style="width:68px"><input @onclick="修改QQ号" type="button" value="修改" /></td>
+            </tr>
+            <tr>
+                <td>电子邮件：</td>
+                <td><InputText @bind-Value=@em class="form-control" autocomplete="email" aria-required="true" placeholder="E-mail" /></td>
+                <td><input @onclick="修改邮件" type="button" value="修改" /></td>
+            </tr>
+            <tr>
+                <td>部门：</td>
+                <td><InputText @bind-Value=@bm class="form-control" autocomplete="department" aria-required="true" placeholder="Department" /></td>
+                <td><input @onclick="修改部门" type="button" value="修改" /></td>
+            </tr>
+            <tr>
+                <td>地址：</td>
+                <td><InputText @bind-Value=员工信息.地址 class="form-control" autocomplete="department" aria-required="true" placeholder="Department" /></td>
+                <td><input @onclick="修改" type="button" value="修改" /></td>
+            </tr>
+            <tr>
+                <td>住宅电话：</td>
+                <td><InputText @bind-Value=员工信息.住宅电话 class="form-control" autocomplete="department" aria-required="true" placeholder="Department" /></td>
+                <td><input @onclick="修改" type="button" value="修改" /></td>
+            </tr>
+
+        </table>
+    </Authorized>
+    <NotAuthorized>
+        <h3>通过验证:@AuthState?.User?.Identity?.IsAuthenticated</h3>
+        <p>
+            @AuthState?.UserName
+        </p>
+        <p>
+            @AuthState?.Phone
+        </p>
+        <h3>☹️</h3>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+
+@code {
+
+    string qq = "";
+    string em = "";
+    string bm = "";
+    int iid = 0;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+    AuthState? AuthState;
+
+    员工? 员工信息 = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = authenticationState?.Result as AuthState;
+
+        if (AuthState?.Phone != null)
+        {
+            员工信息 = HongtengDbCon.Db.Queryable<员工>().First(it => it.手机 == AuthState.Phone);
+
+            if (员工信息 != null)
+            {
+                qq = 员工信息.QQ号 ?? string.Empty;
+                em = 员工信息.电子邮件 ?? string.Empty;
+                bm = 员工信息.部门 ?? string.Empty;
+                iid = 员工信息.员工ID;
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void 修改QQ号()
+    {
+        if (AuthState?.Phone != null)
+        {
+            var result = HongtengDbCon.Db.Updateable<员工>()
+                .SetColumns(it => it.QQ号 == qq)
+                .Where(it => it.手机 == AuthState.Phone)
+                .ExecuteCommand();
+        }
+    }
+
+    private void 修改邮件()
+    {
+        if (AuthState?.Phone != null)
+        {
+            var result = HongtengDbCon.Db.Updateable<员工>()
+                .SetColumns(it => it.电子邮件 == em)
+                .Where(it => it.手机 == AuthState.Phone)
+                .ExecuteCommand();
+        }
+    }
+
+    private void 修改部门()
+    {
+        if (AuthState?.Phone != null)
+        {
+            var result = HongtengDbCon.Db.Updateable<员工>()
+                .SetColumns(it => it.部门 == bm)
+                .Where(it => it.手机 == AuthState.Phone)
+                .ExecuteCommand();
+        }
+    }
+
+    private void 修改()
+    {
+        if (AuthState?.Phone != null && 员工信息 != null)
+        {
+            var result = HongtengDbCon.Db.Updateable(员工信息).Where(it => it.手机 == AuthState.Phone).ExecuteCommand();
+        }
+    }
+
+}
+
+
+
+
+

@@ -1,0 +1,318 @@
+﻿
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using HtERP.Data
+
+<div>
+    @if (forecasts == null|forecasts.Length == 0)
+{
+        <p><button class="btn btn-primary" @onclick="新建后道项目">新建后道项目</button> 印刷单号：@ChildDataId ，客户：@ChildDataCust</p>
+
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr class ="ttr">
+                 <th></th>
+                <th>编号</th>
+                <th>日期</th>
+                <th>客户</th>
+                <th>工作名</th>
+                    <th style="color:navy">要求说明</th>
+                <th>数量</th>
+                
+                
+                <th>覆膜</th>
+                <th>单价</th>
+                <th>模切</th>
+                <th>单价</th>
+                <th>装订</th>
+                <th>单价</th>
+                <th>其他单价</th>
+                <th>其他加工</th>
+                    <th style="color:darkred">加工费</th>
+                    <th style="color:darkred">其他费用</th>
+                    <th style="color:navy">价格</th>
+                <th>制作员</th>
+                <th>备注</th>
+                <th>印刷单号</th>
+                <th>。</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var forecast in forecasts)
+            {
+                <tr>
+                    <td><img src="/image/GreenLight.svg" width="18" alt="o" /></td>
+                    <td style ="width:58px">@forecast.编号</td>
+                    <td><input @bind="forecast.日期" id="日期" type="date" style="width:98px" @bind:after="@更新数据" /></td>
+                    <td style="min-width:68px">@forecast.客户</td>
+                    <td><input @bind="forecast.文件或工作名" type="text" style="min-width:68px" @bind:after="@更新数据" /></td>
+                    <td><input @bind="forecast.要求" type="text" style="min-width:78px; color:mediumblue" @bind:after="@更新数据" /></td>
+                    <td><input @bind="forecast.数量" type="text" style="width:50px" @bind:after="@(() => 计算后道价格(forecast))" /></td>
+                    <td> <input id="Checkbox1" type="checkbox" style="width:28px" checked=@forecast.覆膜  /> </td>
+                    <td><input @bind="forecast.覆膜单价" type="text" style="width:66px" @bind:after="@(() => 覆膜计算(forecast))" /></td>
+                    <td> <input id="Checkbox2" type="checkbox" style="width:28px" checked=@forecast.切割  /> </td>
+                    <td><input @bind="forecast.切割单价" type="text" style="width:66px" @bind:after="@(() => 切割计算(forecast))" /></td>
+                    <td> <input id="Checkbox3" type="checkbox" style="width:28px" checked=@forecast.装订  /> </td>
+                    <td><input @bind="forecast.装订单价" type="text" style="width:66px" @bind:after="@(() => 装订计算(forecast))" /></td>
+                    <td><input @bind="forecast.其他单价" type="text" style="width:66px" @bind:after="@(() => 计算后道价格(forecast))" /></td>
+                    <td><input @bind="forecast.其他加工" type="text" style="min-width:68px" @bind:after="@更新数据" /></td>
+                        <td>
+                            <input type="number" style="text-align: right; width:68px"
+                                   value="@(forecast.加工费?.ToString("F2") ?? "NULL")"
+                                   @onchange="@(e => forecast.加工费 = decimal.TryParse(e.Value?.ToString(), out decimal d) ? d : 0)"
+                                   @onblur="@(() => 合计后道价格(forecast))" />
+                        </td>
+                        <td>
+                            <input type="number"
+                                   style="text-align: right; width:68px"
+                                   value="@(forecast.其他费用?.ToString("F2") ?? "NULL")"
+                                   @onchange="@(e => forecast.其他费用 = decimal.TryParse(e.Value?.ToString(), out decimal d) ? d : 0)"
+                                   @onblur="@(() => 合计后道价格(forecast))"/>
+                        </td>
+                        <td>
+                            <input type="number"
+                                   style="text-align: right; width:68px"
+                                   value="@(forecast.应收?.ToString("F2") ?? "NULL")"
+                                   @onchange="@(e => forecast.应收 = decimal.TryParse(e.Value?.ToString(), out decimal d) ? d : 0)"
+                                   @onblur="@更新数据" />
+                        </td>
+                    <td>
+                        <input @bind="forecast.制作员1" type="text" style="width:78px" @bind:after="@更新数据" list="yoptions" />
+
+                    </td>
+                    <td><input @bind="forecast.备注" type="text" style="min-width:68px" @bind:after="@更新数据" /></td>
+                    <td>@forecast.印刷单号</td>
+                        <td style="width:20px"> <button class="trbtn" @onclick="@(() => ShowDeleteEvent(forecast))" style="color:rgb(200,80,80)"><img src="/image/red-trash2.svg" width="18" class="bi" aria-hidden="true" alt="删" /></button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+        <!-- 输入框下拉列表 -->
+        <datalist id="yoptions">
+            @if (ylist != null) foreach (var foryg in ylist)
+                {
+                    <option value="@foryg.姓名"></option>
+                }
+        </datalist>
+
+
+}
+</div>
+
+@if (ShowDelete)
+{
+    <div class="custom-dialog" @onclick:stopPropagation>
+        <div class="dialog-content">
+            <h3> 是否确定要删除</h3>
+            <h4> 后道项目：</h4>
+            <h4> @aa</h4>
+            <p><button class="dialog-button" @onclick="Deleteit">确定删除</button> <button class="dialog-button" @onclick="HideDeleteEvent">取消</button></p>
+        </div>
+    </div>
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    AuthState? AuthState;
+
+    [Parameter]
+    public int ChildDataId { get; set; }  //印刷单号
+
+    [Parameter]
+    public float? ChildDataQty { get; set; } //数量
+
+    [Parameter]
+    public string? ChildDataCust { get; set; }  //客户
+
+    [Parameter]
+    public string? ChildDataName { get; set; } //工作名
+
+    [Parameter]
+    public string? ChildDataShow { get; set; } //要求说明
+
+
+    [Parameter]
+    public EventCallback<int> ChildDataIdChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<float?> ChildDataQtyChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<string> ChildDataCustChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<string> ChildDataNameChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<string> ChildDataShowChanged { get; set; }
+
+
+    public 员工[]? ylist;
+    private 工作表_后道加工[]? forecasts;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ChildDataIdChanged.InvokeAsync(ChildDataId);
+        }
+
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = authenticationState?.Result as AuthState;
+        forecasts = HongtengDbCon.Db.Queryable<工作表_后道加工>().Where(it => it.印刷单号 == ChildDataId && it.打印类型 == "彩喷打印").Where(it => it.IsDelete == false).ToArray();
+        
+        ylist = HongtengDbCon.Db.Queryable<员工>().Where(it => it.是否已离职 != true).ToArray();
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        forecasts = HongtengDbCon.Db.Queryable<工作表_后道加工>().Where(it => it.印刷单号 == ChildDataId && it.打印类型 == "彩喷打印").Where(it => it.IsDelete == false).ToArray();
+        if (forecasts.Count() > 0)
+        {
+            if (forecasts.First().客户 != ChildDataCust)
+            {
+                //写入客户名
+                foreach (var forecast in forecasts)
+                {
+                    forecast.客户 = ChildDataCust;
+                }
+                HongtengDbCon.Db.Updateable(forecasts).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void 新建后道项目()
+    {
+        var ddd = HongtengDbCon.Db.Insertable(new 工作表_后道加工() { 客户 = ChildDataCust, 印刷单号 = ChildDataId, 文件或工作名 = ChildDataName, 要求 = ChildDataShow, 日期 = DateTime.Now, 制作员1 = AuthState?.UserName, 数量 = ChildDataQty, 打印类型 = "彩喷打印" }).IgnoreColumns(ignoreNullColumn: true).ExecuteReturnEntity();
+        var dda = forecasts.ToList();
+        dda.Add(ddd);
+        forecasts = dda.Where(it => it.IsDelete == false).ToArray();
+    }
+
+    private void 更新数据()
+    {
+        HongtengDbCon.Db.Updateable(forecasts).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+    }
+
+
+    //弹出窗口-软删除一条
+    string? aa;
+    public 工作表_后道加工? pp;
+    public bool ShowDelete { get; set; }
+    private void HideDeleteEvent()
+    {
+        ShowDelete = false;
+    }
+    private void ShowDeleteEvent(工作表_后道加工 p)
+    {
+        pp = p;
+        aa = pp.编号 + "，" + pp.客户 + "【" + pp.文件或工作名 + "】";
+        ShowDelete = true;
+    }
+    private void Deleteit()
+    {
+        pp.IsDelete = true;
+        HongtengDbCon.Db.Updateable(forecasts).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+        forecasts = HongtengDbCon.Db.Queryable<工作表_后道加工>().Where(it => it.印刷单号 == ChildDataId).Where(it => it.IsDelete == false).ToArray();
+
+        ShowDelete = false;
+    }
+
+    //后道加工价格计算
+    private void 覆膜计算(工作表_后道加工 processing)
+    {
+        if (processing.覆膜单价>0)
+        {
+            processing.覆膜 = true;
+        }
+        计算后道价格(processing);
+    }
+    private void 切割计算(工作表_后道加工 processing)
+    {
+        if (processing.切割单价 > 0)
+        {
+            processing.切割 = true;
+        }
+        计算后道价格(processing);
+    }
+    private void 装订计算(工作表_后道加工 processing)
+    {
+        if (processing.装订单价 > 0)
+        {
+            processing.装订 = true;
+        }
+        计算后道价格(processing);
+    }
+    private void 计算后道价格(工作表_后道加工 processing) //计算后道加工价格
+    {
+        if (processing.其他单价==null)
+        {
+            processing.其他单价 = 0;
+        }
+        if (processing.覆膜单价 == null)
+        {
+            processing.覆膜单价 = 0;
+        }
+        if (processing.切割单价 == null)
+        {
+            processing.切割单价 = 0;
+        }
+        if (processing.装订单价 == null)
+        {
+            processing.装订单价 = 0;
+        }
+        if (processing.数量 == null)
+        {
+            processing.数量 = 0;
+        }
+        if (processing.其他费用 == null)
+        {
+            processing.其他费用 = 0;
+        }
+        if (processing.设计制作费 == null)
+        {
+            processing.设计制作费 = 0;
+        }
+        processing.加工费 = (processing.其他单价 + processing.覆膜单价 + processing.切割单价 + processing.装订单价) * ((decimal)processing.数量.Value);
+        if (processing.加工费 < 10 && processing.加工费>0)
+        {
+            processing.加工费 = 10;
+        }
+        processing.应收 = processing.其他费用 + processing.加工费 + processing.设计制作费;
+         
+        HongtengDbCon.Db.Updateable(forecasts).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand(); //更新数据
+    }
+    private void 合计后道价格(工作表_后道加工 processing) //计算后道加工价格
+    {
+        if (processing.其他费用 == null)
+        {
+            processing.其他费用 = 0;
+        }
+        if (processing.加工费 == null)
+        {
+            processing.加工费 = 0;
+        }
+        if (processing.设计制作费 == null)
+        {
+            processing.设计制作费 = 0;
+        }
+        processing.应收 = processing.其他费用 + processing.加工费 + processing.设计制作费;
+         
+        HongtengDbCon.Db.Updateable(forecasts).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand(); //更新数据
+    }
+
+}
