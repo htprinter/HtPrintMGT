@@ -17,25 +17,25 @@
 <div>
     <strong><font size="5" style="color:#016f5e">CTP制版</font></strong>
     <em>（共: <strong>@numResults() </strong>条，数量: <strong>@TotalQuantity() </strong>，价格: <strong>@Totalprice()</strong>元。）</em>
-    <button class="btn btn-primary" @onclick="DownloadExcel">下载Excel</button>
     <button class="btn btn-primary" @onclick="查询今天">今天</button>
     <button class="btn btn-primary" @onclick="查询昨天">昨天</button>
     <button class="btn btn-primary" @onclick="查询前天">前天</button>
     <input @bind="Text1" placeholder="编号..." type="number" style="width:88px; background-color:antiquewhite" />
     <button class="btn btn-primary" @onclick="按编号查询">按编号查询</button>
-    <button class="btn btn-primary" onclick="resetWidth()" style="background-color:darkturquoise">重置列宽</button>
-    <button class="btn btn-primary" @onclick="取消排序" title="恢复默认排序" style="background-color:darkturquoise">取消排序</button>
+    <button class="btn btn-rest" onclick="resetWidth()">重置列宽</button>
+    <button class="btn btn-rest" @onclick="取消排序" title="恢复默认排序">取消排序</button>
+    <button class="btn btn-download" @onclick="DownloadExcel">下载Excel</button>
 </div>
 
 <div>
-    <input @bind="date1" id="tt" type="date" style="width:120px" />
-    <input @bind="date2" id="tt" type="date" style="width:120px" />
-    <input type="search" autofocus @bind="nameFilter" placeholder="客户..." style="width:120px" />
-    <input type="search" autofocus @bind="nameFilter1" placeholder="工作名..." style="width:120px" />
-    <input type="search" autofocus @bind="nameFilter2" placeholder="CTP型号..." style="width:120px" />
+    <input @bind="date1" id="tt" type="date" style="width:128px" />
+    <input @bind="date2" id="tt" type="date" style="width:128px" />
+    <input type="search" autofocus @bind="nameFilter" placeholder="客户..." style="width:128px" list="options" />
+    <input type="search" autofocus @bind="nameFilter1" placeholder="工作名..." style="width:180px" />
+    <input type="search" autofocus @bind="nameFilter2" placeholder="CTP型号..." style="width:100px" />
     <input type="search" autofocus @bind="nameFilter3" placeholder="要求说明..." style="width:120px" />
-    <input type="search" autofocus @bind="nameFilter4" placeholder="送货地点..." style="width:120px" />
-    <input type="search" autofocus @bind="nameFilter5" placeholder="制作员..." style="width:120px" />
+    <input type="search" autofocus @bind="nameFilter4" placeholder="送货地点..." style="width:100px" />
+    <input type="search" autofocus @bind="nameFilter5" placeholder="制作员..." style="width:100px" list="ygoptions" />
     <button class="btn btn-primary" @onclick="查询">查询</button>
     <button class="btn btn-primary" @onclick="清空搜索项">清空搜索项</button>
 </div>
@@ -818,7 +818,7 @@ else
 
     // --------------------------------分页相关变量-----------------------------
     private int currentPage = 1;
-    private int pageSize = 30;
+    private int pageSize = 80;
     private int totalPages = 1;
     private int gotoPage = 1;
     private 工作表_CTP输出[]? currentPageItems;

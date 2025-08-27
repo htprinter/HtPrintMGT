@@ -26,6 +26,10 @@
         padding: 0rem 0rem;
     }
 
+::deep th.country-name {
+    min-width: 12rem;
+}
+
 /* ----------Sticky header while scrolling滚动时标题栏保持顶部显示--------------- */
 ::deep thead {
     position: sticky;

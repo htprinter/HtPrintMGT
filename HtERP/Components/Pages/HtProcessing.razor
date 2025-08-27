@@ -18,19 +18,18 @@
     <em>（共: <strong>@numResults() </strong>条，数量: <strong>@TotalQuantity() </strong>，价格: <strong>@Totalprice()</strong>元。）</em>
     <input type="number" min="1" @bind="查询编号" placeholder="编号..." style="width:80px" />
     <button class="btn btn-primary" @onclick="按编号查询">按编号查询</button>
-    <button class="btn btn-primary" onclick="resetWidth()" style="background-color:darkturquoise">重置列宽</button>
-    <button class="btn btn-primary" @onclick="取消排序" title="恢复默认排序" style="background-color:darkturquoise">取消排序</button>
-
+    <button class="btn btn-rest" onclick="resetWidth()">重置列宽</button>
+    <button class="btn btn-rest" @onclick="取消排序" title="恢复默认排序" >取消排序</button>
+    <button class="btn btn-download" @onclick="DownloadExcel" >下载Excel</button>
 </div>
 
 <div>
-    <input @bind="date1" id="tt" type="date" style="width:120px" />
-    <input @bind="date2" id="tt" type="date" style="width:120px" />
-    <input type="search" autofocus @bind="nameFilter" placeholder="客户..." style="width:120px" />
-    <input type="search" autofocus @bind="nameFilter1" placeholder="工作名..." style="width:120px" />
+    <input @bind="date1" id="tt" type="date" style="width:128px" />
+    <input @bind="date2" id="tt" type="date" style="width:128px" />
+    <input type="search" autofocus @bind="nameFilter" placeholder="客户..." style="width:158px" list="options" />
+    <input type="search" autofocus @bind="nameFilter1" placeholder="工作名..." style="width:280px" list="ygoptions" />
     <button class="btn btn-primary" @onclick="查询">查询</button>
     <button class="btn btn-primary" @onclick="清空搜索项">清空搜索项</button>
-    <button class="btn btn-primary" @onclick="DownloadExcel">下载Excel</button>
 </div>
 
 
@@ -731,7 +730,7 @@ else
 
     // --------------------------------分页相关变量-----------------------------
     private int currentPage = 1;
-    private int pageSize = 30;
+    private int pageSize = 80;
     private int totalPages = 1;
     private int gotoPage = 1;
     private 工作表_后道加工[]? currentPageItems;

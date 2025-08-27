@@ -64,6 +64,36 @@
 
         </div>
         <div class="container">
+            <div class="box">
+                <label>客户类型</label>
+                <input @bind="khlx" type="text" list="khlxoptions" style="width:88px" />
+            </div>
+            <div class="box">
+                <label>设计折扣率</label>
+                <input @bind="khzk1" type="text" style="width:88px" />
+            </div>
+            <div class="box">
+                <label>菲林折扣率</label>
+                <input @bind="khzk2" type="text" style="width:88px" />
+            </div>
+            <div class="box">
+                <label>CTP折扣率</label>
+                <input @bind="khzk3" type="text" style="width:88px" />
+            </div>
+            <div class="box">
+                <label>数码折扣率</label>
+                <input @bind="khzk4" type="text" style="width:88px" />
+            </div>
+            <div class="box">
+                <label>后加工折扣率</label>
+                <input @bind="khzk5" type="text" style="width:88px" />
+            </div>
+            <div class="box">
+                <label>其他折扣率</label>
+                <input @bind="khzk6" type="text" style="width:88px" />
+            </div>
+        </div>
+        <div class="container">
             <h4 style="color:red">@xx</h4>
             <div class="box">
                 <button class="btn btn-primary" @onclick="完成新建">确定</button>
@@ -276,6 +306,9 @@ else
 
 
 @code {
+
+
+
     PaginationState pagination = new PaginationState { ItemsPerPage = 50 };
 
     [CascadingParameter]
@@ -409,7 +442,7 @@ else
             JS.InvokeVoidAsync("alert", "未选择客户，无法更新。");
             return;
         }
-        
+
         if (string.IsNullOrEmpty(e.Value?.ToString()))
         {
             JS.InvokeVoidAsync("alert", "手机号不能为空。");
@@ -472,6 +505,14 @@ else
     private string khgsm=""; //公司名
     private string khdz="";  //地址
     private string khbz="";  //备注
+    private string khlx = "";  //客户类型
+
+    float khzk1 = 1; //纯设计折扣率
+    float khzk2 = 1; //菲林折扣率
+    float khzk3 = 1; //CTP折扣率
+    float khzk4 = 1; //数码折扣率
+    float khzk5 = 1; //后加工折扣率
+    float khzk6 = 1; //其他折扣率
 
     private void 显示新建()
     {
@@ -481,6 +522,13 @@ else
         khgsm = ""; //公司名
         khdz = ""; //地址
         khbz = ""; //备注
+        khlx = ""; //客户类型
+        khzk1 = 1;
+        khzk2 = 1;
+        khzk3 = 1;
+        khzk4 = 1;
+        khzk5 = 1;
+        khzk6 = 1;
         ShowNew = true;
     }
     private void 完成新建()
@@ -502,7 +550,38 @@ else
             return;
         }
 
-        var ddd = HongtengDbCon.Db.Insertable(new 客户表() { 客户ID = khm, 联系人 = khlxr, 手机 = khsj, 公司名称 = khgsm, 地址 = khdz, 备注 = khbz, password = "21218cca77804d2ba1922c33e0151105", IsDelete = false }).ExecuteReturnEntity();
+        if (khzk1 > 1) khzk1 = 1;
+        if (khzk2 > 1) khzk2 = 1;
+        if (khzk3 > 1) khzk3 = 1;
+        if (khzk4 > 1) khzk4 = 1;
+        if (khzk5 > 1) khzk5 = 1;
+        if (khzk6 > 1) khzk6 = 1;
+
+        if (khzk1 < 0) khzk1 = 0;
+        if (khzk2 < 0) khzk2 = 0;
+        if (khzk3 < 0) khzk3 = 0;
+        if (khzk4 < 0) khzk4 = 0;
+        if (khzk5 < 0) khzk5 = 0;
+        if (khzk6 < 0) khzk6 = 0;
+
+        var ddd = HongtengDbCon.Db.Insertable(new 客户表() 
+        { 
+            客户ID = khm, 
+            联系人 = khlxr, 
+            手机 = khsj, 
+            公司名称 = khgsm, 
+            地址 = khdz, 
+            备注 = khbz, 
+            客户类型 = khlx, 
+            纯设计折扣率=khzk1,
+            菲林折扣率  =khzk2,
+            CTP折扣率   =khzk3,
+            数码折扣率  =khzk4,
+            后加工折扣率=khzk5,
+            其他折扣率  =khzk6,
+            password = "21218cca77804d2ba1922c33e0151105", 
+            IsDelete = false 
+        }).ExecuteReturnEntity();
         var dda = forecasts?.ToList() ?? new List<客户表>();
         dda.Add(ddd);
         forecasts = dda.ToArray();

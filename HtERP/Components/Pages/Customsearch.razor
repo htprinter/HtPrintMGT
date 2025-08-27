@@ -22,7 +22,7 @@
         <option>500</option>
         <option>1000</option>
     </select>
-    <button @onclick="查询今天">今日数据</button>
+    <button class="btn btn-primary" @onclick="查询今天">今日数据</button>
 
     <label><input type="checkbox" @bind="ch1" value="印刷">印刷</label>
     <label><input type="checkbox" @bind="ch2" value="后道">后道</label>
@@ -32,23 +32,23 @@
     <label><input type="checkbox" @bind="ch6" value="彩喷">彩喷</label>
 
     <input type="search" autofocus @bind="idnumber" placeholder="按ID查询..." style="width:108px" />
-    <button @onclick="ID查询">查</button>
-    <button @onclick="DownloadData">下载详细</button>
+    <button class="btn btn-primary" @onclick="ID查询">查</button>
+    <button class="btn btn-download" @onclick="DownloadData">下载详细</button>
 </div>
 
 <div>
 
-    <input @bind="date1" id="tt" type="date" style="width:120px" />
-    <input @bind="date2" id="tt" type="date" style="width:120px" />
-    <input type="search" autofocus @bind="nameFilter" placeholder="客户..." style="width:120px" />
-    <input type="search" autofocus @bind="nameFilter1" placeholder="工作名..." style="width:120px" />
-    <input type="search" autofocus @bind="nameFilter2" placeholder="型号规格..." style="width:120px" />
+    <input @bind="date1" id="tt" type="date" style="width:128px" />
+    <input @bind="date2" id="tt" type="date" style="width:128px" />
+    <input type="search" autofocus @bind="nameFilter" placeholder="客户..." style="width:128px" list="options" />
+    <input type="search" autofocus @bind="nameFilter1" placeholder="工作名..." style="width:180px" />
+    <input type="search" autofocus @bind="nameFilter2" placeholder="型号规格..." style="width:100px" />
     <input type="search" autofocus @bind="nameFilter3" placeholder="要求说明..." style="width:120px" />
-    <input type="search" autofocus @bind="nameFilter4" placeholder="送货地点..." style="width:120px" />
-    <input type="search" autofocus @bind="nameFilter5" placeholder="制作员..." style="width:120px" />
+    <input type="search" autofocus @bind="nameFilter4" placeholder="送货地点..." style="width:100px" />
+    <input type="search" autofocus @bind="nameFilter5" placeholder="制作员..." style="width:100px" list="ygoptions" />
     <button class="btn btn-primary" @onclick="查询">查询</button>
-    <button class="btn btn-primary" @onclick="DownloadExcel">下载Excel</button>
     <button class="btn btn-primary" @onclick="清空搜索项">清空搜索项</button>
+    <button class="btn btn-download" @onclick="DownloadExcel">下载Excel</button>
 </div>
 
 @if (items == null)
@@ -63,7 +63,7 @@ else
             <PropertyColumn Property="@(c => c.ID)" Sortable="true" Align="Align.Right" InitialSortDirection="SortDirection.Ascending" IsDefaultSortColumn="true" />
             <PropertyColumn Property="@(c => c.日期)" Format="yyyy/M/d" Sortable="true" Align="Align.Right" Title="日期" />
             <PropertyColumn Property="@(c => c.客户)" Sortable="true" Align="Align.Right" Title="客户" />
-            <PropertyColumn Property="@(c => c.品名)" Sortable="true" Align="Align.Right" Title="品名" />
+            <PropertyColumn Property="@(c => c.品名)" Sortable="true" Align="Align.Right" Title="品名" Class="country-name" />
             <PropertyColumn Property="@(c => c.规格)" Sortable="true" Align="Align.Center" Title="规格" />
             <PropertyColumn Property="@(c => c.长)" Sortable="true" Align="Align.Center" />
             <PropertyColumn Property="@(c => c.宽)" Sortable="true" Align="Align.Center" />
@@ -82,6 +82,24 @@ else
         </QuickGrid>
         <Paginator State="@pagination" />
     </div>
+
+    <!-- 输入框下拉列表 -->
+    <datalist id="options">
+        <option value="现金"></option>
+        <option value="临时"></option>
+        @if (kh != null) foreach (var fore in kh)
+            {
+                <option value="@fore.客户ID"></option>
+            }
+
+    </datalist>
+    <datalist id="ygoptions">
+        @if (yglist != null) foreach (var foryg in yglist)
+            {
+                <option value="@foryg.姓名"></option>
+            }
+    </datalist>
+
 }
 
 @code {
@@ -95,6 +113,9 @@ else
 
     GridSort<dbModel> rankSort = GridSort<dbModel>
     .ByDescending(x => x.完成);
+
+    private 客户表[]? kh;
+    public 员工[]? yglist;
 
     bool ch1 = true;
     bool ch2 = true;
@@ -164,6 +185,9 @@ else
         var q6 = HongtengDbCon.Db.Queryable<工作表_彩喷写真>().Where(it => it.输出日期.Value.Date == DateTime.Now.Date).Select(it => new dbModel { 分类 = "彩喷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.规格, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.价格, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收打印费, 时间戳 = it.时间戳 });
         var list = HongtengDbCon.Db.UnionAll(q1, q2, q3, q4, q5, q6).ToList();
         items = list.ToArray().AsQueryable();
+
+        kh = await HongtengDbCon.Db.Queryable<客户表>().Where(it => it.IsDelete == false).ToArrayAsync();
+        yglist = await HongtengDbCon.Db.Queryable<员工>().Where(it => it.是否已离职 != true).ToArrayAsync();
 
         await InvokeAsync(StateHasChanged);
     }

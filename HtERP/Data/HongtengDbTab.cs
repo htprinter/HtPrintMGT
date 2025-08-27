@@ -968,7 +968,7 @@ namespace HtERP.Data
         public int Id { get; set; }
         [SugarColumn(ColumnDataType = "nvarchar(50)")]
         public string Name { get; set; }= "自动扣款任务";
-        [SugarColumn(ColumnDataType = "nvarchar(250)")]
+        [SugarColumn(ColumnDataType = "nvarchar(255)")]
         public string? DbCon { get; set; }
         public int SetDay { get; set; }
         public int SetHour { get; set; }

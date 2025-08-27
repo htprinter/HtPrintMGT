@@ -1128,7 +1128,7 @@ namespace HtERP.Services
             var 客户账户 = await HongtengDbCon.Db.Queryable<充值账户>()
                           .LeftJoin<充值折扣表>((it, cus) => it.折扣链接 == cus.编号)//多个条件用&&
                           .Where((it, cus) => it.客户编号 == 客户号 && it.是否有效 == true && it.到期时间 >= DateTime.Today && it.剩余金额 > 0)
-                          .Select((it, cus) => new 客户账户 { ID = it.ID, 客户ID = it.客户ID, 使用优先级 = it.使用优先级, 剩余金额 = it.剩余金额, 客户编号 = it.客户编号, 折扣率 = cus.CTP折扣率 })
+                          .Select((it, cus) => new 客户账户 { ID = it.ID, 客户ID = it.客户ID, 使用优先级 = it.使用优先级, 剩余金额 = it.剩余金额, 客户编号 = it.客户编号, 折扣率 = cus.菲林折扣率 })
                           .OrderBy(it => it.使用优先级).OrderBy(it => it.ID)
                           .ToListAsync(); ;
             double 折算总余额 = 0;
@@ -1279,7 +1279,7 @@ namespace HtERP.Services
             var 客户账户 = await HongtengDbCon.Db.Queryable<充值账户>()
                           .LeftJoin<充值折扣表>((it, cus) => it.折扣链接 == cus.编号)//多个条件用&&
                           .Where((it, cus) => it.客户编号 == 客户号 && it.是否有效 == true && it.到期时间 >= DateTime.Today && it.剩余金额 > 0)
-                          .Select((it, cus) => new 客户账户 { ID = it.ID, 客户ID = it.客户ID, 使用优先级 = it.使用优先级, 剩余金额 = it.剩余金额, 客户编号 = it.客户编号, 折扣率 = cus.CTP折扣率 })
+                          .Select((it, cus) => new 客户账户 { ID = it.ID, 客户ID = it.客户ID, 使用优先级 = it.使用优先级, 剩余金额 = it.剩余金额, 客户编号 = it.客户编号, 折扣率 = cus.数码折扣率 })
                           .OrderBy(it => it.使用优先级).OrderBy(it => it.ID)
                           .ToListAsync(); ;
             double 折算总余额 = 0;
@@ -1430,7 +1430,7 @@ namespace HtERP.Services
             var 客户账户 = await HongtengDbCon.Db.Queryable<充值账户>()
                           .LeftJoin<充值折扣表>((it, cus) => it.折扣链接 == cus.编号)//多个条件用&&
                           .Where((it, cus) => it.客户编号 == 客户号 && it.是否有效 == true && it.到期时间 >= DateTime.Today && it.剩余金额 > 0)
-                          .Select((it, cus) => new 客户账户 { ID = it.ID, 客户ID = it.客户ID, 使用优先级 = it.使用优先级, 剩余金额 = it.剩余金额, 客户编号 = it.客户编号, 折扣率 = cus.CTP折扣率 })
+                          .Select((it, cus) => new 客户账户 { ID = it.ID, 客户ID = it.客户ID, 使用优先级 = it.使用优先级, 剩余金额 = it.剩余金额, 客户编号 = it.客户编号, 折扣率 = cus.数码折扣率 })
                           .OrderBy(it => it.使用优先级).OrderBy(it => it.ID)
                           .ToListAsync(); ;
             double 折算总余额 = 0;
@@ -1581,7 +1581,7 @@ namespace HtERP.Services
             var 客户账户 = await HongtengDbCon.Db.Queryable<充值账户>()
                           .LeftJoin<充值折扣表>((it, cus) => it.折扣链接 == cus.编号)//多个条件用&&
                           .Where((it, cus) => it.客户编号 == 客户号 && it.是否有效 == true && it.到期时间 >= DateTime.Today && it.剩余金额 > 0)
-                          .Select((it, cus) => new 客户账户 { ID = it.ID, 客户ID = it.客户ID, 使用优先级 = it.使用优先级, 剩余金额 = it.剩余金额, 客户编号 = it.客户编号, 折扣率 = cus.CTP折扣率 })
+                          .Select((it, cus) => new 客户账户 { ID = it.ID, 客户ID = it.客户ID, 使用优先级 = it.使用优先级, 剩余金额 = it.剩余金额, 客户编号 = it.客户编号, 折扣率 = cus.后加工折扣率 })
                           .OrderBy(it => it.使用优先级).OrderBy(it => it.ID)
                           .ToListAsync(); ;
             double 折算总余额 = 0;
@@ -1732,7 +1732,7 @@ namespace HtERP.Services
             var 客户账户 = await HongtengDbCon.Db.Queryable<充值账户>()
                           .LeftJoin<充值折扣表>((it, cus) => it.折扣链接 == cus.编号)//多个条件用&&
                           .Where((it, cus) => it.客户编号 == 客户号 && it.是否有效 == true && it.到期时间 >= DateTime.Today && it.剩余金额 > 0)
-                          .Select((it, cus) => new 客户账户 { ID = it.ID, 客户ID = it.客户ID, 使用优先级 = it.使用优先级, 剩余金额 = it.剩余金额, 客户编号 = it.客户编号, 折扣率 = cus.CTP折扣率 })
+                          .Select((it, cus) => new 客户账户 { ID = it.ID, 客户ID = it.客户ID, 使用优先级 = it.使用优先级, 剩余金额 = it.剩余金额, 客户编号 = it.客户编号, 折扣率 = cus.纯设计折扣率 })
                           .OrderBy(it => it.使用优先级).OrderBy(it => it.ID)
                           .ToListAsync(); ;
             double 折算总余额 = 0;
