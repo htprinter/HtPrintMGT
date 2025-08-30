@@ -7,8 +7,9 @@
 @using System.Linq.Expressions
 @using System.Reflection
 
+@implements IDisposable
 @inject IJSRuntime JS
-@inject IJSRuntime JSRuntime
+
 @attribute [Authorize]
 
 <PageTitle>HtDesignList</PageTitle>
@@ -16,6 +17,10 @@
 <div>
     <strong><font size="5" style="color:#016f5e">纯设计制作</font></strong>
     <em>（共: <strong>@numResults() </strong>条，数量: <strong>@TotalQuantity() </strong>，价格: <strong>@Totalprice()</strong>元。）</em>
+    <div class="inline">
+        <input type="checkbox" id="zd" @bind="自动刷新" />
+        <label for="zd">自动刷新</label>
+    </div>
     <button class="btn btn-primary" @onclick="查询今天">今天</button>
     <button class="btn btn-primary" @onclick="查询昨天">昨天</button>
     <button class="btn btn-primary" @onclick="查询前天">前天</button>
@@ -36,7 +41,8 @@
     <input type="search" autofocus @bind="nameFilter4" placeholder="送货地点..." style="width:100px" />
     <input type="search" autofocus @bind="nameFilter5" placeholder="制作员..." style="width:100px" list="ygoptions" />
     <button class="btn btn-primary" @onclick="查询">查询</button>
-    <button class="btn btn-primary" @onclick="清空搜索项">清空搜索项</button>
+    <button class="btn btn-primary" @onclick="查询我的">我的</button>
+    <button class="btn btn-primary" @onclick="清空搜索项">清空</button>
 </div>
 
 <div>
@@ -357,6 +363,10 @@
     private Task<AuthenticationState>? authenticationState { get; set; }
 
     AuthState? AuthState;
+    
+    bool 自动刷新 = false;
+    private Timer? 刷新定时器;
+    private int d = 300; // 单位秒，默认每5分钟刷新一次
 
     string nameFilter = string.Empty;
     string nameFilter1 = string.Empty;
@@ -389,6 +399,32 @@
         UpdatePagination();
 
         await InvokeAsync(StateHasChanged);
+
+        刷新定时器 = new Timer(刷新, null, TimeSpan.Zero, TimeSpan.FromSeconds(d));
+
+    }
+
+    private void 刷新(object? state)
+    {
+        if (自动刷新)
+        {
+            InvokeAsync(() =>
+            {
+                查询今天();
+                items = items.OrderByDescending(x => x.已完成);
+                // 计算总页数
+                int totalCount = items.Count();
+                totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+                currentPage = totalPages; // 跳到最后一页
+                UpdatePagination();
+                StateHasChanged();
+            });
+        }
+    }
+    public void Dispose()
+    {
+        // 组件销毁时停止并释放计时器，防止内存泄漏
+        刷新定时器?.Dispose();
     }
 
     public int numResults()
@@ -410,7 +446,7 @@
 
     private void 查询今天()
     {
-        forecasts = HongtengDbCon.Db.Queryable<工作表_设计制作>().Where(it => it.日期.Value.Date == DateTime.Now.Date && it.IsDelete == false).ToArray();
+        forecasts = HongtengDbCon.Db.Queryable<工作表_设计制作>().Where(it => it.日期.Value.Date == DateTime.Now.Date && it.IsDelete == false).OrderBy(it => it.编号).ToArray();
         items = forecasts.AsQueryable();
 
         currentPage = 1; // 重置到第一页
@@ -418,7 +454,7 @@
     }
     private void 查询昨天()
     {
-        forecasts = HongtengDbCon.Db.Queryable<工作表_设计制作>().Where(it => it.日期.Value.Date == DateTime.Now.AddDays(-1).Date && it.IsDelete == false).ToArray();
+        forecasts = HongtengDbCon.Db.Queryable<工作表_设计制作>().Where(it => it.日期.Value.Date == DateTime.Now.AddDays(-1).Date && it.IsDelete == false).OrderBy(it => it.编号).ToArray();
         items = forecasts.AsQueryable();
 
         currentPage = 1; // 重置到第一页
@@ -426,11 +462,20 @@
     }
     private void 查询前天()
     {
-        forecasts = HongtengDbCon.Db.Queryable<工作表_设计制作>().Where(it => it.日期.Value.Date == DateTime.Now.AddDays(-2).Date && it.IsDelete == false).ToArray();
+        forecasts = HongtengDbCon.Db.Queryable<工作表_设计制作>().Where(it => it.日期.Value.Date == DateTime.Now.AddDays(-2).Date && it.IsDelete == false).OrderBy(it => it.编号).ToArray();
         items = forecasts.AsQueryable();
 
         currentPage = 1; // 重置到第一页
         UpdatePagination();
+    }
+
+    private void 查询我的()
+    {
+        if (AuthState != null)
+        {
+            nameFilter5 = AuthState.UserName ?? "";
+            查询();
+        }
     }
 
     private void 查询()
@@ -453,7 +498,7 @@
              .WhereIF(!string.IsNullOrEmpty(nameFilter2), it => it.发送至.Contains(nameFilter2))
              .WhereIF(!string.IsNullOrEmpty(nameFilter3), it => it.输出要求.Contains(nameFilter3))
              .WhereIF(!string.IsNullOrEmpty(nameFilter4), it => it.送货地点.Contains(nameFilter4))
-             .WhereIF(!string.IsNullOrEmpty(nameFilter5), it => it.制作员1.Contains(nameFilter5)).ToArray();
+             .WhereIF(!string.IsNullOrEmpty(nameFilter5), it => it.制作员1.Contains(nameFilter5)).OrderBy(it => it.编号).ToArray();
 
         items = forecasts.AsQueryable();
 
@@ -465,7 +510,8 @@
 
     private void 清空搜索项()
     {
-
+        date1 = DateTime.Now.AddDays(-1);
+        date2 = DateTime.Now;
         nameFilter = string.Empty;
         nameFilter1 = string.Empty;
         nameFilter2 = string.Empty;

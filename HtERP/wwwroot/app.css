@@ -35,6 +35,35 @@ a, .btn-link {
     background-color: #1b6ec2;
     border-color: #1861ac;
 }
+.btn-primary:hover {
+    color: #fff;
+    background-color: #1055a8;
+    border-color: #103968;
+}
+
+.btn-rest {
+    color: #fff;
+    background-color: #20d3d8;
+    border-color: #1861ac;
+}
+
+    .btn-rest:hover {
+        color: #fff;
+        background-color: #20a0b6;
+        border-color: #103968;
+    }
+
+.btn-download {
+    color: #fff;
+    background-color: #88cc66;
+    border-color: #1861ac;
+}
+
+    .btn-download:hover {
+        color: #fff;
+        background-color: #559933;
+        border-color: #103968;
+    }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
   box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
@@ -361,3 +390,11 @@ th:hover .resize-handle {
         background: rgb(127, 217, 246);
         transform: translateY(-2px);
     }
+
+.inline {
+    display: inline-block;
+    vertical-align: middle;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(188, 255, 188, 0.5);
+}

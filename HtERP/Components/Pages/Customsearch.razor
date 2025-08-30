@@ -47,7 +47,7 @@
     <input type="search" autofocus @bind="nameFilter4" placeholder="送货地点..." style="width:100px" />
     <input type="search" autofocus @bind="nameFilter5" placeholder="制作员..." style="width:100px" list="ygoptions" />
     <button class="btn btn-primary" @onclick="查询">查询</button>
-    <button class="btn btn-primary" @onclick="清空搜索项">清空搜索项</button>
+    <button class="btn btn-primary" @onclick="清空搜索项">重置</button>
     <button class="btn btn-download" @onclick="DownloadExcel">下载Excel</button>
 </div>
 
@@ -312,7 +312,8 @@ else
 
     private void 清空搜索项()
     {
-
+        date1 = DateTime.Now.AddDays(-1);
+        date2 = DateTime.Now;
         nameFilter = string.Empty;
         nameFilter1 = string.Empty;
         nameFilter2 = string.Empty;

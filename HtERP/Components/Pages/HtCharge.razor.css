@@ -389,6 +389,28 @@
         background: #e2e8f0;
     }
 
+.condel-btn {
+    background: linear-gradient(to right, #e05951, #c03330);
+    color: white;
+    box-shadow: 0 4px 10px rgba(200, 88, 88, 0.3);
+}
+
+    .condel-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(200, 88, 88, 0.4);
+    }
+
+.contk-btn {
+    background: linear-gradient(to right, #e0c011, #f5c522);
+    color: white;
+    box-shadow: 0 4px 10px rgba(218, 188, 66, 0.3);
+}
+
+    .contk-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(218, 188, 66, 0.4);
+    }
+
 .features {
     display: flex;
     justify-content: center;

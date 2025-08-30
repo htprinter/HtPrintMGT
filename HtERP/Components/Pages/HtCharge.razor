@@ -237,6 +237,7 @@
                                 <th>优先级</th>
                                 <th>操作员</th>
                                 <th>说明</th>
+                                <th></th>
                             </tr>
                         </thead>
                         @foreach (var forecast in itemsCzzh)
@@ -250,7 +251,6 @@
                                     <td class="fw-bold text-success">@forecast.剩余金额</td>
                                     <td>@forecast.到期时间</td>
                                     <td>
-                                        
                                         @if (IsadminPro)
                                         {
                                             <input type="number" step="1" min="1" style="width:50px" @bind="forecast.使用优先级" @bind:after="@(()=>更新充值优先级(forecast))">
@@ -262,6 +262,14 @@
                                     </td>
                                     <td>@forecast.操作员</td>
                                     <td>@forecast.说明</td>
+                                    <td>
+                                        @if (IsadminPro)
+                                        {
+                                            <button class="btn trbtn btn-white" @onclick="@(() => 显示账户编辑(forecast))">
+                                                <img src="/image/svg-black/pan_edit.svg" width="18" class="bi" aria-hidden="true" alt="编辑" />
+                                            </button>
+                                        }
+                                    </td>
                                 </tr>
                                 
                             </tbody>
@@ -952,7 +960,7 @@
                     <img src="/image/svg-white/White_check-circle-fill.svg" width="16" class="bi" aria-hidden="true" />
                     确认充值
                 </button>
-                <button class="dialog-button cancel-btn" @onclick="取消结清">
+                    <button class="dialog-button cancel-btn" @onclick="取消充值">
                         <img src="/image/svg-black/x.svg" width="16" class="bi" aria-hidden="true" style="opacity: 0.6" />
                     取消
                 </button>
@@ -961,8 +969,61 @@
     </div>
     </div>
 
+}
+
+
+<!-- 修改客户充值账户 -->
+@if (ShowEdit)
+{
+    <div class="custom-dialog" @onclick:stopPropagation>
+    <div class="dialog-content">
+        <div class="dialog-header">
+            修改客户充值账户
+        </div>
+
+        <div class="dialog-item">
+            <div class="info-item">
+                <span class="info-label">客户名：</span>
+                    <span class="info-value">@czzhm</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">金额：</span>
+                    <span class="info-value amount-value">@czje_edit.ToString("C")</span>
+            </div>
+            <div class="message">
+                <span>@editmsg</span>
+            </div>
+            <form class="info-item">
+                <label class="info-label" for="bbbb">确认密码：</label>
+                    <input id="bbbb" type="password" @bind="Password" placeholder="请输入您的安全密码">
+            </form>
+  
+            <div class="button-group">
+                    <button class="dialog-button confirm-btn" @onclick="充值账户加效期">
+                    <img src="/image/svg-white/White_check-circle-fill.svg" width="17" class="bi" aria-hidden="true" />
+                    加效期
+                </button>
+                    <button class="dialog-button contk-btn" @onclick="充值账户退款">
+                        <img src="/image/svg-white/White_s-arrow.svg" width="18" class="bi" aria-hidden="true" />
+                    退款
+                </button>
+            </div>
+            <div class="button-group">
+                    <button class="dialog-button condel-btn" @onclick="删除充值账户">
+                        <img src="/image/svg-white/White_x.svg" width="17" class="bi" aria-hidden="true" />
+                    删除
+                </button>
+                    <button class="dialog-button cancel-btn" @onclick="关闭账户编辑">
+                        <img src="/image/svg-black/stop-fill.svg" width="18" class="bi" aria-hidden="true" style="opacity: 0.5" />
+                    关闭
+                </button>
+            </div>
+        </div>
+    </div>
+    </div>
 
 }
+
 
 
 <!-- 输入框下拉列表 -->
@@ -1217,7 +1278,7 @@
         {
             return "未设置";
         }
-        
+
     }
 
     public void ClearReset()
@@ -1264,7 +1325,7 @@
         khgs = khitem?.公司名称 ?? "";   //客户公司
         khlxr = khitem?.联系人 ?? "";   //客户联系人
 
-        itemsCzzh = HongtengDbCon.Db.Queryable<充值账户>().Where(it => it.客户ID == khid).ToArray().AsQueryable().OrderByDescending(it => it.流水号);
+        itemsCzzh = HongtengDbCon.Db.Queryable<充值账户>().Where(it => it.客户ID == khid && it.是否有效==true).ToArray().AsQueryable().OrderByDescending(it => it.流水号);
         StateHasChanged();
     }
 
@@ -1287,7 +1348,7 @@
         khgs = khitem?.公司名称 ?? "";   //客户公司
         khlxr = khitem?.联系人 ?? "";   //客户联系人
 
-        itemsCzzh = HongtengDbCon.Db.Queryable<充值账户>().Where(it => it.客户ID == khm).ToArray().AsQueryable().OrderByDescending(it => it.流水号);
+        itemsCzzh = HongtengDbCon.Db.Queryable<充值账户>().Where(it => it.客户ID == khm && it.是否有效 == true).ToArray().AsQueryable().OrderByDescending(it => it.流水号);
     }
 
     public decimal 计算理论余额(string khm)
@@ -1298,7 +1359,7 @@
 
     public decimal 计算账户余额(string khm)
     {
-        var khitem = HongtengDbCon.Db.Queryable<充值账户>().Where(it => it.客户ID == khm && it.到期时间 >= DateTime.Today);
+        var khitem = HongtengDbCon.Db.Queryable<充值账户>().Where(it => it.客户ID == khm && it.是否有效 == true && it.到期时间 >= DateTime.Today);
         var ye = khitem.Sum(it => it.剩余金额) ?? 0;
         return ye;
     }
@@ -1422,7 +1483,7 @@
 
                 bb = "";
 
-                itemsCzzh = HongtengDbCon.Db.Queryable<充值账户>().Where(it => it.客户ID == khid).ToArray().AsQueryable().OrderByDescending(it => it.流水号);
+                itemsCzzh = HongtengDbCon.Db.Queryable<充值账户>().Where(it => it.客户ID == khid && it.是否有效 == true).ToArray().AsQueryable().OrderByDescending(it => it.流水号);
                 ShowSettle = false;
                 Password = "";
 
@@ -1441,7 +1502,7 @@
         }
     }
 
-    private void 取消结清()
+    private void 取消充值()
     {
         ShowSettle = false;
         Password = "";
@@ -1466,6 +1527,190 @@
         }
 
     }
+
+
+    //----弹出窗口-----充值账户编辑----
+    string? editmsg = "";
+    private bool ShowEdit { get; set; }
+    private string czzhm="";
+    private decimal czje_edit = 0;
+    充值账户? czzhp;
+    private void 显示账户编辑(充值账户 p)
+    {
+        czzhm= p.客户ID ?? "";
+        czje_edit = p.剩余金额 ?? 0;
+        editmsg = "";
+        czzhp = p;
+        ShowEdit = true;
+    }
+    private void 充值账户加效期()
+    {
+        if (czzhp == null)
+        {
+            editmsg = "无效账户！";
+            return;
+        }
+        if (errcount > 5)
+        {
+            editmsg = "密码错误次数过多！";
+            return;
+        }
+        string? phone = AuthState?.Phone;
+        if (phone == null)
+        {
+            editmsg = "无法获取用户的电话号码，请检查登录状态。";
+            return;
+        }
+        string pwd = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(Password))).ToLower();
+        //验证密码后充值
+        if (HongtengDbCon.Db.Queryable<员工>().Any(it => it.手机 == phone && it.密码 == pwd && (it.是否已离职 == false || it.是否已离职 == null)))
+        {
+            czzhp.到期时间 = czzhp.到期时间 != null && czzhp.到期时间 > DateTime.Now ? czzhp.到期时间.Value.AddYears(1) : DateTime.Now.AddYears(1);
+            HongtengDbCon.Db.Updateable(czzhp).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+            editmsg = "已经增加一年效期！";
+
+        }
+        else
+        {
+            errcount++;
+            editmsg = "密码错误，无权操作";
+        }
+    }
+    private void 充值账户退款()
+    {
+        if (czzhp == null)
+        {
+            editmsg = "无效账户！";
+            return;
+        }
+        if (czje_edit <= 0 || czje_edit > (czzhp.剩余金额 ?? 0))
+        {
+            editmsg = "退款金额异常！";
+            return;
+        }
+        if (errcount > 5)
+        {
+            editmsg = "密码错误次数过多！";
+            return;
+        }
+        string? phone = AuthState?.Phone;
+        if (phone == null)
+        {
+            editmsg = "无法获取用户的电话号码，请检查登录状态。";
+            return;
+        }
+        string pwd = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(Password))).ToLower();
+        //验证密码后充值
+        if (HongtengDbCon.Db.Queryable<员工>().Any(it => it.手机 == phone && it.密码 == pwd && (it.是否已离职 == false || it.是否已离职 == null)))
+        {
+            wangdian = AuthState?.BuMen ?? "网页访问";  //部门网点
+            var khitem = HongtengDbCon.Db.Queryable<客户表>().Where(it => it.自动编号 == czzhp.客户编号).First();
+            if (khitem == null)
+            {
+                editmsg = "无效客户！";
+                return;
+            }
+            decimal khye = 计算账户余额(czzhp.客户ID ?? "");   //原账户余额合计
+            khye = khye - czje_edit;   //退款后账户余额合计
+            var fsje = -czje_edit;      //发生金额
+            string zy = "退款" + czje_edit + "。";  //充值摘要
+            if (czzhp.是否为赠送)
+            {
+                var jyls = HongtengDbCon.Db.Insertable(new 交易流水表()
+                { 日期 = DateTime.Now, 客户 = czzhp.客户ID, 交易类型 = "退款-销户", 用途名称 = "赠送金额销户", 扣款账号 = czzhp.ID, 摘要 = zy, 发生金额 = fsje, 账户余额 = khye, 赠送金额 = 0, 收付款方式 = "退款", 网点 = wangdian, 操作员 = AuthState?.UserName }).IgnoreColumns(ignoreNullColumn: true).ExecuteReturnEntity();
+
+                //更新客户表账户余额
+                khitem.账户余额 = khye;
+                HongtengDbCon.Db.Updateable(khitem).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+
+                editmsg = "此账户为赠送金额，无需退款给客户，已经将此账户余额清零。";
+            }
+            else
+            {
+                var jyls = HongtengDbCon.Db.Insertable(new 交易流水表()
+                { 日期 = DateTime.Now, 客户 = czzhp.客户ID, 交易类型 = "退款-销户", 用途名称 = "退款给客户", 扣款账号 = czzhp.ID, 摘要 = zy, 发生金额 = fsje, 账户余额 = khye, 赠送金额 = 0, 收付款方式 = "退款", 网点 = wangdian, 操作员 = AuthState?.UserName }).IgnoreColumns(ignoreNullColumn: true).ExecuteReturnEntity();
+                var tkzd = HongtengDbCon.Db.Insertable(new 支出总表()
+                { 日期 = DateTime.Now, 支出类别 = "退款", 支出项目说明 = zy, 收款单位 = czzhp.客户ID, 支出金额 = czje_edit, 支付方式 = "退款", 支出部门 = wangdian, 经办人 = AuthState?.UserName, 备注 = $"退款账户号{czzhp.ID}" }).IgnoreColumns(ignoreNullColumn: true).ExecuteReturnEntity();
+
+                //更新客户表账户余额
+                khitem.账户余额 = khye;
+                HongtengDbCon.Db.Updateable(khitem).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+
+                editmsg = $"退回客户{czje_edit}元。";
+            }
+        }
+        else
+        {
+            errcount++;
+            editmsg = "密码错误，无权操作";
+            return;
+        }
+        czzhp.剩余金额 = 0;
+        HongtengDbCon.Db.Updateable(czzhp).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+        Password = "";
+        czje_edit = czzhp.剩余金额 ?? 0;
+        刷新充值记录();
+    }
+    private void 删除充值账户()
+    {
+        if (czzhp == null)
+        {
+            editmsg = "无效账户！";
+            return;
+        }
+        if ((czzhp.剩余金额 ?? 0) > 0)
+        {
+            editmsg = "账户有余额，无法删除！";
+            return;
+        }
+        if (errcount > 5)
+        {
+            editmsg = "密码错误次数过多！";
+            return;
+        }
+        string? phone = AuthState?.Phone;
+        if (phone == null)
+        {
+            editmsg = "无法获取用户的电话号码，请检查登录状态。";
+            return;
+        }
+        string pwd = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(Password))).ToLower();
+        //验证密码后充值
+        if (HongtengDbCon.Db.Queryable<员工>().Any(it => it.手机 == phone && it.密码 == pwd && (it.是否已离职 == false || it.是否已离职 == null)))
+        {
+            czzhp.是否有效 = false;
+            HongtengDbCon.Db.Updateable(czzhp).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+
+            var khitem = HongtengDbCon.Db.Queryable<客户表>().Where(it => it.自动编号 == czzhp.客户编号).First();
+            if (khitem != null)
+            {
+                //更新客户表账户余额
+                decimal khye = 计算账户余额(czzhp.客户ID ?? "");   //原账户余额合计
+                khitem.账户余额 = khye;
+                HongtengDbCon.Db.Updateable(khitem).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
+            }
+            editmsg = "删除成功！";
+            Password = "";
+            itemsCzzh = HongtengDbCon.Db.Queryable<充值账户>().Where(it => it.客户ID == czzhm && it.是否有效 == true).ToArray().AsQueryable().OrderByDescending(it => it.流水号);
+            czzhp = null;
+            ShowEdit = false;
+        }
+        else
+        {
+            errcount++;
+            editmsg = "密码错误，无权操作";
+            return;
+        }
+        刷新充值记录();
+    }
+    private void 关闭账户编辑()
+    {
+        czzhp = null;
+        ShowEdit = false;
+        Password = "";
+    }
+
+
 
     private void 更新折扣方案(string zk)
     {

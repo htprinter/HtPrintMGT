@@ -35,7 +35,7 @@ namespace HtERP.Services
                          .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
                          .Where((it, cus) => it.结清 == false && cus.VIP客户 == true)
                          .Where((it, cus) => it.输出日期 < beforTime)
-                         .Select((it, cus) => new dbModel { 分类 = "印刷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.纸张类型, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.印刷费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收印制费, 客户编号 = cus.自动编号 })
+                         .Select((it, cus) => new dbModel { 分类 = "印刷", 已优惠 = it.已优惠, ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.纸张类型, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.印刷费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收印制费, 客户编号 = cus.自动编号 })
                          //.OrderBy(it => it.ID)
                          .ToList();
 
@@ -178,7 +178,7 @@ namespace HtERP.Services
                          .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
                          .Where((it, cus) => it.结清 == false && cus.VIP客户 == true)
                          .Where((it, cus) => it.日期 < beforTime)
-                         .Select((it, cus) => new dbModel { 分类 = "后道", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.数量, 规格 = it.输出设备, 价格 = it.应收, 要求说明 = it.要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.加工费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收加工费, 客户编号 = cus.自动编号 })
+                         .Select((it, cus) => new dbModel { 分类 = "后道", 已优惠 = it.已优惠, ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.数量, 规格 = it.输出设备, 价格 = it.应收, 要求说明 = it.要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.加工费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收加工费, 客户编号 = cus.自动编号 })
                          //.OrderBy(it => it.ID)
                          .ToList();
 
@@ -321,7 +321,7 @@ namespace HtERP.Services
                          .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
                          .Where((it, cus) => it.结清 == false && cus.VIP客户 == true)
                          .Where((it, cus) => it.输出日期 < beforTime)
-                         .Select((it, cus) => new dbModel { 分类 = "CTP", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.CTP板材型号, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已输出, 附加设计费 = it.设计制作费, 主费用 = it.版费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收CTP费, 客户编号 = cus.自动编号 })
+                         .Select((it, cus) => new dbModel { 分类 = "CTP", 已优惠 = it.已优惠, ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.CTP板材型号, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已输出, 附加设计费 = it.设计制作费, 主费用 = it.版费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收CTP费, 客户编号 = cus.自动编号 })
                          //.OrderBy(it => it.ID)
                          .ToList();
 
@@ -463,7 +463,7 @@ namespace HtERP.Services
                          .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
                          .Where((it, cus) => it.结清 == false && cus.VIP客户 == true)
                          .Where((it, cus) => it.输出日期 < beforTime)
-                         .Select((it, cus) => new dbModel { 分类 = "菲林", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.输出设备, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 附加设计费 = it.设计制作费, 主费用 = it.菲林费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收菲林费, 客户编号 = cus.自动编号 })
+                         .Select((it, cus) => new dbModel { 分类 = "菲林", 已优惠 = it.已优惠, ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.输出设备, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 附加设计费 = it.设计制作费, 主费用 = it.菲林费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收菲林费, 客户编号 = cus.自动编号 })
                          //.OrderBy(it => it.ID)
                          .ToList();
 
@@ -605,7 +605,7 @@ namespace HtERP.Services
                          .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
                          .Where((it, cus) => it.结清 == false && cus.VIP客户 == true)
                          .Where((it, cus) => it.输出日期 < beforTime)
-                         .Select((it, cus) => new dbModel { 分类 = "彩喷", ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.规格, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.价格, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收打印费, 客户编号 = cus.自动编号 })
+                         .Select((it, cus) => new dbModel { 分类 = "彩喷", 已优惠 = it.已优惠, ID = it.编号, 日期 = it.输出日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.打印长, 宽 = it.打印宽, 数量 = it.张数, 规格 = it.规格, 价格 = it.应收, 要求说明 = it.要求及文件位置, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已经发送, 附加设计费 = it.设计制作费, 主费用 = it.价格, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收打印费, 客户编号 = cus.自动编号 })
                          //.OrderBy(it => it.ID)
                          .ToList();
 
@@ -748,7 +748,7 @@ namespace HtERP.Services
                          .LeftJoin<客户表>((it, cus) => it.客户 == cus.客户ID)//多个条件用&&
                          .Where((it, cus) => it.结清 == false && cus.VIP客户 == true)
                          .Where((it, cus) => it.日期 < beforTime)
-                         .Select((it, cus) => new dbModel { 分类 = "设计", ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.发送至, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 附加设计费 = it.设计制作费, 主费用 = it.施工费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收施工费, 客户编号 = cus.自动编号 })
+                         .Select((it, cus) => new dbModel { 分类 = "设计", 已优惠 = it.已优惠, ID = it.编号, 日期 = it.日期, 客户 = it.客户, 品名 = it.文件或工作名, 长 = it.长, 宽 = it.宽, 数量 = it.总色数, 规格 = it.发送至, 价格 = it.应收, 要求说明 = it.输出要求, 制作员1 = it.制作员1, 送货地点 = it.送货地点, 备注 = it.备注, 完成 = it.已完成, 附加设计费 = it.设计制作费, 主费用 = it.施工费, 其他费用 = it.其他费用, 结清 = it.结清, 实收 = it.实收, 实收设计费 = it.实收设计费, 实收CTP费 = it.实收施工费, 客户编号 = cus.自动编号 })
                          //.OrderBy(it => it.ID)
                          .ToList();
 

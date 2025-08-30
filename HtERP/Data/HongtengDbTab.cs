@@ -765,6 +765,7 @@ namespace HtERP.Data
         [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
         public int ID { get; set; }
         public decimal? 菲林起步价 { get; set; }
+        public decimal? 菲林每张起步价 { get; set; }
         public decimal? 菲林每平米价格 { get; set; }
         public decimal? CTP每平米价格 { get; set; }
         public decimal? 数码打样每平米价格 { get; set; }
