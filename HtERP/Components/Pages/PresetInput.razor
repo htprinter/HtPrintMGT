@@ -1,0 +1,60 @@
+﻿<!-- PresetInput.razor 自定义选择输入组件 -->
+<div class="preset-input-wrapper">
+    <div class="input-group">
+        <InputText @bind-Value="CurrentValue" class="form-control" @attributes="AdditionalAttributes" />
+        <button class="btn @ButtonClass" type="button" @onclick="ToggleShowOptions">
+            @ButtonText
+        </button>
+    </div>
+
+    @if (ShowOptions)
+    {
+        <div class="preset-options-list">
+            @foreach (var option in Options)
+            {
+                <div class="preset-option-item" @onclick="() => OnOptionSelected(option)">
+                    @option
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private bool ShowOptions = false;
+
+    [Parameter]
+    public string? CurrentValue { get; set; }
+
+    [Parameter]
+    public EventCallback<string> CurrentValueChanged { get; set; }
+
+    [Parameter]
+    public IEnumerable<string> Options { get; set; } = new List<string>();
+
+    [Parameter]
+    public string ButtonText { get; set; } = "▼"; // 按钮默认文本
+
+    [Parameter]
+    public string ButtonClass { get; set; } = "btn-outline-secondary"; // 按钮样式类
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private async Task ToggleShowOptions()
+    {
+        ShowOptions = !ShowOptions;
+        await Task.CompletedTask;
+    }
+
+    private async Task OnOptionSelected(string option)
+    {
+        CurrentValue = option;
+        ShowOptions = false;
+
+        if (CurrentValueChanged.HasDelegate)
+        {
+            await CurrentValueChanged.InvokeAsync(CurrentValue);
+        }
+    }
+}

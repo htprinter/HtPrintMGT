@@ -108,7 +108,7 @@
                         </button>
                         <div class="resize-handle"></div>
                     </th>
-                                        <th style="width: 80px">
+                    <th style="width: 80px">
                         <button class="btn trbtn" @onclick="@(() => SortData("送货地点"))">
                             送货地点<img src="@GetSortIndicator("送货地点")" width="18" alt="↓" />
                         </button>
@@ -120,7 +120,7 @@
                         </button>
                         <div class="resize-handle"></div>
                     </th>
-                    <th style="width: 168px; background-color:rgba(185,215,200,0.5)">
+                    <th style="width: 168px; background-color:rgba(185,215,200,0.5)" data-column="role">
                         <button class="btn trbtn" @onclick="@(() => SortData("收费类别"))">
                             收费类别<img src="@GetSortIndicator("收费类别")" width="18" alt="↓" />
                         </button>
@@ -202,21 +202,26 @@
                         <td><input @bind="forecast.要求及文件位置" type="text"  @bind:after="@(() => 更新数据(forecast))" /></td>
                         <td><input @bind="forecast.送货地点" type="text"  @bind:after="@(() => 更新数据(forecast))" /></td>
                         <td><input @bind="forecast.已经发送" class="cb-completed" type="checkbox"  @bind:after="@(() => 更新数据(forecast))" /></td>
-                        <td style="font-size: 0.8em">
-                            <select @bind="forecast.收费类别"  @bind:after="@(() => 价格计算(forecast))">
-                                <option value="自定单价">自定单价</option>
-                                @if (sflist != null) foreach (var forsf in sflist)
-                                    {
-                                        <option value="@forsf.收费类别">@forsf.收费类别</option>
-                                    }
-                            </select>
+                        <td>
+                            <div>
+                                <select class="select-width" style="width:168px; opacity: 0; position: absolute; cursor: pointer; "
+                                        @bind="forecast.收费类别" @bind:after="@(() => 价格计算(forecast))" >
+                                    <option value="自定单价">自定单价</option>
+                                    @if (sflist != null) foreach (var forsf in sflist)
+                                        {
+                                            <option value="@forsf.收费类别">@forsf.收费类别</option>
+                                        }
+                                </select>
+                                <input @bind="forecast.收费类别" type="text" class="bg-svg" disabled />
+                               
+                            </div>
+
                         </td>
 
                        <td>
                             <input type="number" style="text-align: right"
-                                   value="@(forecast.阶梯价一?.ToString("F2") ?? "NULL")"
-                                   @onchange="@(e => forecast.阶梯价一 = decimal.TryParse(e.Value?.ToString(), out decimal d) ? d : 0)"
-                                   @onblur="@(() => 自定单价计算(forecast))" />
+                                   @bind="forecast.阶梯价一"
+                                   @bind:after="@(() => 自定单价计算(forecast))" />
                         </td>
 
                         <td>
@@ -332,7 +337,6 @@
 }
 
 
-
 @code {
 
     [CascadingParameter]
@@ -362,7 +366,6 @@
     public 员工[]? yglist;
     public 纸张类型[]? zzlist;
     public 数码印刷费率表[]? sflist;
-
 
     public int numResults()
     {
@@ -785,7 +788,15 @@
         p.阶梯价三 = p.阶梯价一;
         p.印刷费 = p.阶梯价一 * zs;
         p.应收 = p.印刷费 + sjf;
-        p.收费类别 = "自定单价";
+        if (p.收费类别==null)
+        {
+            p.收费类别 = "自定单价";
+        }
+        else if (!(p.收费类别.Contains("修改") || p.收费类别.Contains("自定")))
+        {
+            p.收费类别 = p.收费类别 + " 修改";
+        }
+
         HongtengDbCon.Db.Updateable(p).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommand();
     }
 
@@ -793,7 +804,7 @@
     {
         decimal sjf = 0; //设计费
         decimal jg = 0; //印刷费
-         if (p.设计制作费 > 0)
+        if (p.设计制作费 > 0)
         {
             sjf = p.设计制作费 ?? 0;
         }

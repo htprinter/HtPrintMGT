@@ -398,3 +398,8 @@ th:hover .resize-handle {
     border-radius: 3px;
     background: rgba(188, 255, 188, 0.5);
 }
+
+/* 表头内同行 */
+.inlinebtn {
+    display: flex;
+}

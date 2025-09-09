@@ -1,0 +1,26 @@
+﻿.preset-input-wrapper {
+    position: relative;
+    width: fit-content;
+}
+
+.preset-options-list {
+    position: absolute;
+    z-index: 1000;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 0.25rem;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 0.25rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.preset-option-item {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+}
+
+    .preset-option-item:hover {
+        background-color: #f8f9fa;
+    }

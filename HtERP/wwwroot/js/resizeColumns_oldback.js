@@ -1,5 +1,4 @@
-﻿
-const resizeStyle = window.document.createElement("style");
+﻿const resizeStyle = window.document.createElement("style");
 resizeStyle.innerHTML = ":root.x-resizing-column{cursor:col-resize!important}";
 window.document.head.appendChild(resizeStyle);
 window.addEventListener("mousedown", event => {
@@ -13,52 +12,25 @@ window.addEventListener("mousedown", event => {
     const rect = resizingElement.getBoundingClientRect();
     const beginElementW = rect.width;
     const beginMouseX = event.clientX;
-    const isRoleColumn = resizingElement.dataset.column === "role"; // 检查是否是收费类别列
     if (!resizingElement.dataset.originalStyle) {
         resizingElement.dataset.originalStyle = resizingElement.style.width;
     }
     /** @type {(event:MouseEvent)=>void} */
     const resizing = event => {
         const diff = event.clientX - beginMouseX;
-        const newWidth = Math.max(30, beginElementW + diff);
-        resizingElement.style.width = `${newWidth}px`;
-
-        // 如果是收费类别列，实时更新select宽度
-        if (isRoleColumn) {
-            updateSelectWidth(newWidth);
-        }
+        resizingElement.style.width = `${Math.max(30, beginElementW + diff)}px`;
     }
     const endResize = () => {
         window.document.documentElement.classList.remove("x-resizing-column");
         window.removeEventListener("mousemove", resizing);
         window.removeEventListener("mouseup", endResize);
-
-        // 调整结束时再更新一次，确保宽度准确
-        if (isRoleColumn) {
-            updateSelectWidth(resizingElement.offsetWidth);
-        }
     }
     window.document.documentElement.classList.add("x-resizing-column");
     window.addEventListener("mouseup", endResize);
     window.addEventListener("mousemove", resizing);
 });
-
-// 更新select宽度的函数
-function updateSelectWidth(width) {
-    // 选择所有需要跟随调整宽度的select元素
-    const selects = document.querySelectorAll('.select-width');
-    selects.forEach(select => {
-        select.style.width = `${width}px`;
-    });
-}
-
 function resetWidth() {
     for (const th of document.querySelectorAll("th[data-original-style]")) {
         th.style.width = th.dataset.originalStyle;
-        // 如果是收费类别列，重置对应的select宽度
-        if (th.dataset.column === "role") {
-            updateSelectWidth(th.offsetWidth);
-        }
     }
 }
-

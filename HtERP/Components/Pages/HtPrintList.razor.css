@@ -55,3 +55,25 @@ th, td {
     will-change: width;
     backface-visibility: hidden;
 }
+
+/* ------------选择收费类别对话框------------------- */
+.sflb-dialog {
+    display: flex;
+    padding: 3px;
+    align-items: center;
+    border: 1px solid #999999; /* 定义边框样式 */
+    border-radius: 3px; /* 定义圆角大小 */
+    background-color: #fefefe;
+    overflow: hidden;
+    z-index: 9;
+    position: fixed;
+    width: 268px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    user-select: none; /* 防止拖动时选中文本 */
+}
+
+.bg-svg {
+    background-image: url('/image/arrowDown.svg');
+    background-repeat: no-repeat;
+    background-position: right 0px center;
+}
